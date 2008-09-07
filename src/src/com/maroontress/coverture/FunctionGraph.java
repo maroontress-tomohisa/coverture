@@ -37,20 +37,12 @@ public final class FunctionGraph {
     /** すべてのエッジの個数です。 */
     private int totalArcCount;
 
-    /**
-       スパニングツリーではないエッジの個数です。スパニングツリーにエッ
-       ジを1つ加える度に、閉路が1つ増加します。そのため、この値はグラ
-       フのサイクルランクと等しく、例外やlongjmp()を考慮した場合の
-       McCabeのサイクロマティック複雑度に対応します。
-    */
+    /** スパニングツリーではないエッジの個数です。 */
     private int arcCount;
 
     /**
-       スパニングツリーではないエッジのうち、偽のエッジの個数です。偽
-       のエッジは、例外やlongjmp()によって、現在の関数から抜ける場合や、
-       exit()などのような戻らない関数の呼び出しの経路に対応します。
-       arcCountからこの値を引くとMcCabeのサイクロマティック複雑度を表
-       します。
+       偽のエッジの個数です。偽のエッジは、例外やlongjmp()によって、現
+       在の関数から抜ける経路に対応します。
     */
     private int fakeArcCount;
 
@@ -60,17 +52,14 @@ public final class FunctionGraph {
        @param out 出力先
     */
     public void printXML(final PrintWriter out) {
-	if (false) {
-	    int complexityWithFake = totalArcCount - blocks.length + 2;
-	    int complexity = complexityWithFake - fakeArcCount;
-	    // complexityWithFake == arcCount
-	}
+	int complexityWithFake = totalArcCount - blocks.length + 2;
+	int complexity = complexityWithFake - fakeArcCount;
 	out.printf("<functionGraph id='%d' checksum='0x%x' functionName='%s' "
 		   + "sourceFile='%s' lineNumber='%d' "
 		   + "complexity='%d' complexityWithFake='%d'>\n",
 		   id, checksum, XML.escape(functionName),
 		   XML.escape(sourceFile), lineNumber,
-		   arcCount - fakeArcCount, arcCount);
+		   complexity, complexityWithFake);
 	for (Block b : blocks) {
 	    b.printXML(out);
 	}
