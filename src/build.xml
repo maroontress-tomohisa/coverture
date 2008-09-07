@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<project default="all">
+
+  <property name="prefix" location="/usr/local"/>
+  <property name="debug" location="false"/>
+  <property name="javadoc_linkurl" value="http://java.sun.com/j2se/1.5.0/ja/docs/ja/api/"/>
+  <property name="javac_options" value="-encoding EUC-JP -Xlint:unchecked -Xlint:deprecation"/>
+
+  <target name="all" depends="coverture.jar"/>
+
+  <target name="destdir">
+    <mkdir dir="classes"/>
+  </target>
+
+  <target name="compile" depends="destdir">
+    <depend srcdir="src" destdir="classes" cache="depcache" closure="true"/>
+    <javac srcdir="src" destdir="classes" debug="${debug}">
+      <compilerarg line="${javac_options}"/>
+    </javac>
+  </target>
+
+  <target name="resources" depends="compile">
+    <copy todir="classes/com/maroontress/coverture">
+      <fileset dir="." includes="version"/>
+    </copy>
+  </target>
+
+  <target name="coverture.jar" depends="resources">
+    <jar destfile="coverture.jar" manifest="manifest" basedir="classes"/>
+  </target>
+
+  <target name="coverture.sh">
+    <copy file="coverture.sh.in" tofile="coverture.sh">
+      <filterset>
+        <filter token="PREFIX" value="${prefix}"/>
+      </filterset>
+    </copy>
+  </target>
+
+  <target name="install" depends="coverture.jar, coverture.sh">
+    <copy file="coverture.jar" todir="${prefix}/lib/coverture"/>
+    <exec dir="." executable="install" failonerror="true">
+      <arg line="-c -m 0755 coverture.sh ${prefix}/bin/coverture"/>
+    </exec>
+  </target>
+
+  <target name="package-list">
+    <exec dir="." executable="fetch" failonerror="false">
+      <arg line="${javadoc_linkurl}/package-list"/>
+    </exec>
+  </target>
+
+  <target name="doc">
+    <javadoc encoding="EUC-JP" destdir="html" charset="UTF-8" docencoding="UTF-8" linkoffline="${javadoc_linkurl} .">
+      <fileset dir="src" includes="**/*.java"/>
+    </javadoc>
+  </target>
+
+  <target name="clean">
+    <delete>
+      <fileset dir="." includes="coverture.jar coverture.sh"/>
+    </delete>
+    <delete dir="html"/>
+    <delete dir="classes"/>
+    <delete dir="depcache"/>
+  </target>
+
+</project>
