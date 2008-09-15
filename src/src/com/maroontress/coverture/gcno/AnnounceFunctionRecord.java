@@ -38,8 +38,8 @@ public final class AnnounceFunctionRecord {
        の位置に移動します。
 
        @param bb バイトバッファ
-       @throws IOException
-       @throws UnexpectedTagException
+       @throws IOException 入出力エラー
+       @throws UnexpectedTagException 予期しないタグを検出
     */
     public AnnounceFunctionRecord(final ByteBuffer bb)
 	throws IOException, UnexpectedTagException {

@@ -11,8 +11,7 @@ import java.util.Arrays;
 /**
    ノートレコードです。
 
-   note: unit function-graph*
-   unit: header int32:checksum string:source
+   note: int32:magic int32:version int32:stamp function-graph*
 */
 public final class NoteRecord {
 
@@ -60,14 +59,14 @@ public final class NoteRecord {
     private ArrayList<FunctionGraphRecord> list;
 
     /**
-       バイトバッファからgcnoファイルをパースして、ノートを生成します。
-       バイトバッファの位置はバッファの先頭でなければなりません。成功
-       した場合はバイトバッファの位置は終端に移動します。
+       バイトバッファからgcnoファイルをパースして、ノートレコードを生
+       成します。バイトバッファの位置はバッファの先頭でなければなりま
+       せん。成功した場合はバイトバッファの位置は終端に移動します。
 
        @param bb バイトバッファ
-       @throws IOException
-       @throws CorruptedFileException
-       @throws UnexpectedTagException
+       @throws IOException 入出力エラー
+       @throws CorruptedFileException ファイルの構造が壊れていることを検出
+       @throws UnexpectedTagException 予期しないタグを検出
     */
     public NoteRecord(final ByteBuffer bb)
 	throws IOException, UnexpectedTagException, CorruptedFileException {
@@ -107,9 +106,9 @@ public final class NoteRecord {
     }
 
     /**
-       関数グラフレコードのリストを取得します。
+       関数グラフレコードの配列を取得します。
 
-       @return 関数グラフレコードのリスト
+       @return 関数グラフレコードの配列
     */
     public FunctionGraphRecord[] getList() {
 	return list.toArray(new FunctionGraphRecord[0]);

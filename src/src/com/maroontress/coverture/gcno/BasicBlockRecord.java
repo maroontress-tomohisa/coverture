@@ -23,8 +23,8 @@ public final class BasicBlockRecord {
        置はBASIC_BLOCKレコードの次の位置に移動します。
 
        @param bb バイトバッファ
-       @throws IOException
-       @throws UnexpectedTagException
+       @throws IOException 入出力エラー
+       @throws UnexpectedTagException 予期しないタグを検出
     */
     public BasicBlockRecord(final ByteBuffer bb)
 	throws IOException, UnexpectedTagException {

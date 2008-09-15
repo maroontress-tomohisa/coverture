@@ -26,7 +26,7 @@ public final class Parser {
 
        @param bb バイトバッファ
        @return 文字列
-       @throws IOException
+       @throws IOException 入出力エラー
     */
     public static String getString(final ByteBuffer bb) throws IOException {
 	int length = bb.getInt();

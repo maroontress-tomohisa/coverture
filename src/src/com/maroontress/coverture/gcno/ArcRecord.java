@@ -23,7 +23,7 @@ public final class ArcRecord {
        に移動します。
 
        @param bb バイトバッファ
-       @throws IOException
+       @throws IOException 入出力エラー
     */
     public ArcRecord(final ByteBuffer bb) throws IOException {
 	endIndex = bb.getInt();

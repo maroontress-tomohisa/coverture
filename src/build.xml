@@ -29,15 +29,12 @@
     <jar destfile="coverture.jar" manifest="manifest" basedir="classes"/>
   </target>
 
-  <target name="coverture.sh">
+  <target name="install" depends="coverture.jar">
     <copy file="coverture.sh.in" tofile="coverture.sh">
       <filterset>
         <filter token="PREFIX" value="${prefix}"/>
       </filterset>
     </copy>
-  </target>
-
-  <target name="install" depends="coverture.jar, coverture.sh">
     <copy file="coverture.jar" todir="${prefix}/lib/coverture"/>
     <exec dir="." executable="install" failonerror="true">
       <arg line="-c -m 0755 coverture.sh ${prefix}/bin/coverture"/>

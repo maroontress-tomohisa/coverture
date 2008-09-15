@@ -24,7 +24,7 @@ public final class LineRecord {
        次の位置に移動します。
 
        @param bb バイトバッファ
-       @throws IOException
+       @throws IOException 入出力エラー
     */
     public LineRecord(final ByteBuffer bb) throws IOException {
 	number = bb.getInt();

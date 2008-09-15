@@ -57,9 +57,10 @@ public final class Coverture {
        処理します。
 
        @param inputFile 入力するファイル名
-       @throws IOException
-       @throws CorruptedFileException
-       @throws UnexpectedTagException
+       @param out 出力先
+       @throws IOException 入出力エラー
+       @throws CorruptedFileException ファイルの構造が壊れていることを検出
+       @throws UnexpectedTagException 予期しないタグを検出
     */
     private static void processFileList(final String inputFile,
 					final PrintWriter out)
@@ -106,6 +107,9 @@ public final class Coverture {
 	    out.println("<gcno>");
 	    for (; arg != null; arg = ap.getArgument()) {
 		Note note = Note.parse(arg.getName());
+		if (note == null) {
+		    continue;
+		}
 		note.printXML(out);
 	    }
 	    if (inputFile != null) {

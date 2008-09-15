@@ -2,6 +2,10 @@ package com.maroontress.coverture;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.TreeMap;
 
 /**
    関数グラフのノードとなる基本ブロックです。
@@ -14,11 +18,26 @@ public final class Block {
     /** ブロックのフラグです。 */
     private int flags;
 
-    /** 「入るエッジ」のリストです。 */
+    /** 「入るアーク」のリストです。 */
     private ArrayList<Arc> inArcs;
 
-    /** 「出るエッジ」のリストです。 */
+    /** 実行回数が判明した「入るアーク」の集合です。 */
+    private LinkedList<Arc> solvedInArcs;
+
+    /** 実行回数が不明な「入るアーク」の集合です。 */
+    private LinkedList<Arc> unsolvedInArcs;
+
+    /** 「出るアーク」のリストです。 */
     private ArrayList<Arc> outArcs;
+
+    /** 実行回数が判明した「出るアーク」のリストです。 */
+    private LinkedList<Arc> solvedOutArcs;
+
+    /** 実行回数が不明な「出るアーク」のリストです。 */
+    private LinkedList<Arc> unsolvedOutArcs;
+
+    /** ブロックの実行回数です。 */
+    private long count;
 
     /**
        Block is a call instrumenting site; does the call: 関数を呼び出
@@ -27,7 +46,13 @@ public final class Block {
     private boolean callSite;
 
     /**
-       Block is a landing pad for longjmp or throw: エッジの終点が
+       Block is a call instrumenting site; is the return. 呼び出しから
+       の戻りとなるブロックであることを示します。
+    */
+    private boolean callReturn;
+
+    /**
+       Block is a landing pad for longjmp or throw: アークの終点が
        catchまたはsetjmp()であることを示します。
     */
     private boolean nonLocalReturn;
@@ -36,21 +61,52 @@ public final class Block {
     private LineEntry[] lines;
 
     /**
+       カウントの有効性を取得します。
+
+       @return カウントが有効ならtrue、そうでなければfalse
+    */
+    public boolean getCountValid() {
+	return (count >= 0);
+    }
+
+    /**
+       実行割合を取得します。
+
+       @param c 実行回数
+       @return 実行割合
+    */
+    private double getRate(final long c) {
+	return (count == 0) ? 0 : 100.0 * c / count;
+    }
+
+    /**
        XMLでブロックを出力します。
 
        @param out 出力先
     */
     public void printXML(final PrintWriter out) {
+	final boolean countValid = getCountValid();
+
 	out.printf("<block id='%d' flags='0x%x' callSite='%b' "
-		   + "nonLocalReturn='%b'>\n",
-		   id, flags, callSite, nonLocalReturn);
+		   + "callReturn='%b' nonLocalReturn='%b'",
+		   id, flags, callSite, callReturn, nonLocalReturn);
+	if (countValid) {
+	    out.printf(" count='%d'", count);
+	}
+	out.printf(">\n");
+
 	for (Arc arc : outArcs) {
 	    out.printf("<arc destination='%d' fake='%b' onTree='%b' "
 		       + "fallThrough='%b' callNonReturn='%b' "
-		       + "nonLocalReturn='%b' />\n",
+		       + "nonLocalReturn='%b' unconditional='%b'",
 		       arc.getEnd().getId(), arc.isFake(), arc.isOnTree(),
 		       arc.isFallThrough(), arc.isCallNonReturn(),
-		       arc.isNonLocalReturn());
+		       arc.isNonLocalReturn(), arc.isUnconditional());
+	    if (countValid) {
+		long c = arc.getCount();
+		out.printf(" count='%d' rate='%.2f'", c, getRate(c));
+	    }
+	    out.printf("/>\n");
 	}
 	if (lines != null) {
 	    for (LineEntry e : lines) {
@@ -78,8 +134,13 @@ public final class Block {
     public Block(final int id, final int flags) {
 	this.id = id;
 	this.flags = flags;
+	this.count = -1;
 	inArcs = new ArrayList<Arc>();
+	solvedInArcs = new LinkedList<Arc>();
+	unsolvedInArcs = new LinkedList<Arc>();
 	outArcs = new ArrayList<Arc>();
+	solvedOutArcs = new LinkedList<Arc>();
+	unsolvedOutArcs = new LinkedList<Arc>();
     }
 
     /**
@@ -103,21 +164,41 @@ public final class Block {
     }
 
     /**
-       このブロックに入るエッジを追加します。
+       このブロックにアークを追加します。
 
-       @param arc エッジ
+       @param arcs アークのリスト
+       @param unsolvedArcs 実行回数が不明なアークの集合
+       @param solvedArcs 実行回数が判明するアークの集合
+       @param arc アーク
     */
-    public void addInArc(final Arc arc) {
-	inArcs.add(arc);
+    private void addArc(final ArrayList<Arc> arcs,
+			final LinkedList<Arc> unsolvedArcs,
+			final LinkedList<Arc> solvedArcs,
+			final Arc arc) {
+	arcs.add(arc);
+	if (arc.isOnTree()) {
+	    unsolvedArcs.add(arc);
+	} else {
+	    solvedArcs.add(arc);
+	}
     }
 
     /**
-       このブロックから出るエッジを追加します。
+       このブロックに入るアークを追加します。
 
-       @param arc エッジ
+       @param arc アーク
+    */
+    public void addInArc(final Arc arc) {
+	addArc(inArcs, unsolvedInArcs, solvedInArcs, arc);
+    }
+
+    /**
+       このブロックから出るアークを追加します。
+
+       @param arc アーク
     */
     public void addOutArc(final Arc arc) {
-	outArcs.add(arc);
+	addArc(outArcs, unsolvedOutArcs, solvedOutArcs, arc);
     }
 
     /**
@@ -136,5 +217,246 @@ public final class Block {
     */
     public int getId() {
 	return id;
+    }
+
+    /**
+       「入るアーク」のリストを取得します。
+
+       @return 「入るアーク」のリスト
+    */
+    public ArrayList<Arc> getInArcs() {
+	return inArcs;
+    }
+
+    /**
+       「出るアーク」のリストを取得します。
+
+       @return 「出るアーク」のリスト
+    */
+    public ArrayList<Arc> getOutArcs() {
+	return outArcs;
+    }
+
+    /**
+       関数を呼び出すブロックかどうかを取得します。
+
+       @return 関数を呼び出すブロックの場合はtrue、そうでなければfalse
+    */
+    public boolean isCallSite() {
+	return callSite;
+    }
+
+    /**
+       フローグラフを解くための準備をします。
+
+       ブロックから出る偽でないアークが1つしかない場合、そのアークを無
+       条件分岐に設定します。さらに、そのアークが入るブロックが「呼び
+       出しからの戻り」であるかどうかを設定します。
+    */
+    public void presolve() {
+	int nonFakeArcs = 0;
+	Arc lastNonFakeArc = null;
+
+	for (Arc a : outArcs) {
+	    if (!a.isFake()) {
+		lastNonFakeArc = a;
+		++nonFakeArcs;
+	    }
+	}
+	if (nonFakeArcs != 1) {
+	    return;
+	}
+	Arc arc = lastNonFakeArc;
+	Block destBlock = arc.getEnd();
+	/*
+	  If there is only one non-fake exit, it is an unconditional
+	  branch.
+	*/
+	arc.setUnconditional(true);
+	/*
+	  If this block is instrumenting a call, it might be an
+	  artificial block. It is not artificial if it has a
+	  non-fallthrough exit, or the destination of this arc has
+	  more than one entry.  Mark the destination block as a return
+	  site, if none of those conditions hold.
+	*/
+	if (callSite
+	    && arc.isFallThrough()
+	    && destBlock.inArcs.get(0) == arc
+	    && destBlock.inArcs.size() == 1) {
+	    destBlock.callReturn = true;
+	}
+    }
+
+    /**
+       「出るアーク」のリストをその終了ブロックの識別子順にソートする。
+    */
+    public void sortOutArcs() {
+	TreeMap<Integer, Arc> map = new TreeMap<Integer, Arc>();
+	for (Arc a : outArcs) {
+	    map.put(a.getEnd().id, a);
+	}
+	outArcs.clear();
+	outArcs.addAll(map.values());
+    }
+
+    /**
+       アークの集合から実行回数を求めます。
+
+       @param arcs アークの集合
+       @return 総実行回数
+    */
+    private long sumCount(final Collection<Arc> arcs) {
+	long total = 0;
+	for (Arc a : arcs) {
+	    total += a.getCount();
+	}
+	return total;
+    }
+
+    /**
+       実行回数を求めます。
+
+       @param arcs アークのリスト
+       @param unsolvedArcs 実行回数が不明なアークのリスト
+       @return 実行回数が求まった時はtrue、そうでなければfalse
+    */
+    private boolean validateCount(final ArrayList<Arc> arcs,
+				  final LinkedList<Arc> unsolvedArcs) {
+	if (arcs.size() > 0 && unsolvedArcs.size() == 0) {
+	    count = sumCount(arcs);
+	    return true;
+	}
+	return false;
+    }
+
+    /**
+       実行回数を求めます。
+
+       「入るアーク」の実行回数がすべて求まっているか、「出るアーク」
+       の実行回数がすべて求まっている場合、それらの総和をブロックの実
+       行回数として計算し、ブロックをキューに追加します。
+
+       「入るアーク」と「出るアーク」のどちらも実行回数が求まっていな
+       い場合は何もしません。
+
+       @param q 実行回数が求まったときにブロックを追加するキュー
+    */
+    public void validate(final Queue<Block> q) {
+	if (validateCount(inArcs, unsolvedInArcs)
+	    || validateCount(outArcs, unsolvedOutArcs)) {
+	    q.add(this);
+	}
+    }
+
+    /**
+       「出るアーク」の実行回数が判明したときに呼び出されます。
+
+       ブロックの実行回数が既に判明していた場合は、ブロックから「出る
+       アーク」のうち、実行回数が判明していないアークの実行回数を可能
+       なら求めます。
+
+       ブロックの実行回数が不明な場合は、ブロックの実行回数を可能なら
+       求めます。求まった場合はブロックをキューに追加します。
+
+       @param q 実行回数が判明したときにブロックを追加するキュー
+       @param arc 実行回数が判明したアーク
+    */
+    private void validateInSideBlock(final Queue<Block> q, final Arc arc) {
+	unsolvedOutArcs.remove(arc);
+	solvedOutArcs.add(arc);
+	if (inArcs.size() > 0 && unsolvedInArcs.size() == 0) {
+	    // 既に実行回数が判明していた
+	    if (unsolvedOutArcs.size() == 1) {
+		validateOutSide(q);
+	    }
+	} else {
+	    // まだ実行回数が不明
+	    if (validateCount(outArcs, unsolvedOutArcs)) {
+		q.add(this);
+	    }
+	}
+    }
+
+    /**
+       実行回数の不明な「入るアーク」が1つだけであり、かつブロックの実
+       行回数が判明したときに呼び出され、すべての「入るアーク」の実行
+       回数が判明します。
+
+       実行回数が判明したアークの開始ブロックについて、再帰的に実行回
+       数を求めます。
+
+       @param q 実行回数が判明したときにブロックを追加するキュー
+    */
+    private void validateInSide(final Queue<Block> q) {
+	Arc arc = unsolvedInArcs.remove();
+	arc.setCount(count - sumCount(solvedInArcs));
+	solvedInArcs.add(arc);
+	// arcが出るブロックについての処理
+	arc.getStart().validateInSideBlock(q, arc);
+    }
+
+    /**
+       「入るアーク」の実行回数が判明したときに呼び出されます。
+
+       ブロックの実行回数が既に判明していた場合は、ブロックに「入るアー
+       ク」のうち、実行回数が判明していないアークの実行回数を可能なら
+       求めます。
+
+       ブロックの実行回数が不明な場合は、ブロックの実行回数を可能なら
+       求めます。求まった場合はブロックをキューに追加します。
+
+       @param q 実行回数が判明したときにブロックを追加するキュー
+       @param arc 実行回数が判明したアーク
+    */
+    private void validateOutSideBlock(final Queue<Block> q, final Arc arc) {
+	unsolvedInArcs.remove(arc);
+	solvedInArcs.add(arc);
+	if (outArcs.size() > 0 && unsolvedOutArcs.size() == 0) {
+	    // 既に実行回数が判明していた
+	    if (unsolvedInArcs.size() == 1) {
+		validateInSide(q);
+	    }
+	} else {
+	    // まだ実行回数が不明
+	    if (validateCount(inArcs, unsolvedInArcs)) {
+		q.add(this);
+	    }
+	}
+    }
+
+    /**
+       実行回数の不明な「出るアーク」が1つだけであり、かつブロックの実
+       行回数が判明したときに呼び出され、すべての「出るアーク」の実行
+       回数が判明します。
+
+       実行回数が判明したアークの終了ブロックについて、再帰的に実行回
+       数を求めます。
+
+       @param q 実行回数が判明したときにブロックを追加するキュー
+    */
+    private void validateOutSide(final Queue<Block> q) {
+	Arc arc = unsolvedOutArcs.remove();
+	arc.setCount(count - sumCount(solvedOutArcs));
+	solvedOutArcs.add(arc);
+	// arcが入るブロックについての処理
+	arc.getEnd().validateOutSideBlock(q, arc);
+    }
+
+    /**
+       ブロックに入るアーク、出るアークそれぞれについて、実行回数が不
+       明なものが1つだけなら、それの実行回数を求めます。
+
+       ブロックは既に実行回数が判明している必要があります。
+
+       @param q 実行回数が判明したときにブロックを追加するキュー
+    */
+    public void validateSides(final Queue<Block> q) {
+	if (unsolvedInArcs.size() == 1) {
+	    validateInSide(q);
+	}
+	if (unsolvedOutArcs.size() == 1) {
+	    validateOutSide(q);
+	}
     }
 }

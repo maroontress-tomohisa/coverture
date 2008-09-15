@@ -1,5 +1,7 @@
 package com.maroontress.coverture;
 
+import com.maroontress.coverture.gcda.DataRecord;
+import com.maroontress.coverture.gcda.FunctionDataRecord;
 import com.maroontress.coverture.gcno.FunctionGraphRecord;
 import com.maroontress.coverture.gcno.NoteRecord;
 import java.io.File;
@@ -43,7 +45,7 @@ public final class Note {
        @param rec ノートレコード
        @param lastModified gcnoファイルのファイルシステムのタイムスタ
        ンプ
-       @throws CorruptedFileException
+       @throws CorruptedFileException ファイルの構造が壊れていることを検出
     */
     private Note(final NoteRecord rec, final long lastModified)
 	throws CorruptedFileException {
@@ -75,6 +77,73 @@ public final class Note {
     }
 
     /**
+       データレコードを設定します。
+
+       @param rec データレコード
+       @param lastModified gcdaファイルのファイルシステムのタイムスタ
+       ンプ
+       @throws CorruptedFileException
+    */
+    private void setDataRecord(final DataRecord rec, final long lastModified)
+	throws CorruptedFileException {
+	if (version != rec.getVersion()) {
+	    throw new CorruptedFileException("gcda file: version mismatch.");
+	}
+	if (stamp != rec.getStamp()) {
+	    throw new CorruptedFileException("gcda file: timestamp mismatch.");
+	}
+	if (this.lastModified > lastModified) {
+	    System.out.println("warning: gcno file is newer than gcda file.");
+	}
+	FunctionDataRecord[] list = rec.getList();
+	for (FunctionDataRecord e : list) {
+	    int id = e.getId();
+	    FunctionGraph g = map.get(id);
+	    if (g == null) {
+		System.out.printf("warning: unknown function id '%d'.", id);
+		continue;
+	    }
+	    g.setFunctionDataRecord(e);
+	}
+    }
+
+    /**
+       gcdaファイルをパースして、ノートにアークカウンタを追加します。
+       チャネルをマップするので、2Gバイトを超えるファイルは扱えません。
+
+       ファイルの内容が不正な場合は、標準エラー出力にスタックトレース
+       を出力します。
+
+       @param path gcdaファイルのパス
+    */
+    private void parseData(final String path) {
+	if (!path.endsWith(".gcda")) {
+	    System.err.printf("%s: suffix is not '.gcda'.\n", path);
+	    return;
+	}
+	File file = new File(path);
+	try {
+	    FileChannel ch = new RandomAccessFile(file, "r").getChannel();
+	    ByteBuffer bb = ch.map(FileChannel.MapMode.READ_ONLY,
+				   0, ch.size());
+	    try {
+		DataRecord dataRecord = new DataRecord(bb);
+		setDataRecord(dataRecord, file.lastModified());
+	    } catch (UnexpectedTagException e) {
+		e.printStackTrace();
+	    } catch (CorruptedFileException e) {
+		e.printStackTrace();
+	    } finally {
+		ch.close();
+	    }
+	} catch (FileNotFoundException e) {
+	    System.err.println(path + ": not found");
+	} catch (IOException e) {
+	    e.printStackTrace();
+	}
+    }
+
+    /**
        gcnoファイルをパースして、ノートを生成します。チャネルをマップ
        するので、2Gバイトを超えるファイルは扱えません。
 
@@ -83,9 +152,13 @@ public final class Note {
 
        @param path gcnoファイルのパス
        @return ノート
+       @throws IOException
     */
-    public static Note parse(final String path)
-	throws IOException, CorruptedFileException, UnexpectedTagException {
+    public static Note parse(final String path) throws IOException {
+	if (!path.endsWith(".gcno")) {
+	    System.err.printf("%s: suffix is not '.gcno'.", path);
+	    return null;
+	}
 	File file = new File(path);
 	FileChannel ch = new RandomAccessFile(file, "r").getChannel();
 	ByteBuffer bb = ch.map(FileChannel.MapMode.READ_ONLY, 0, ch.size());
@@ -103,6 +176,7 @@ public final class Note {
 	} finally {
 	    ch.close();
 	}
+	note.parseData(path.substring(0, path.lastIndexOf('.')) + ".gcda");
 	return note;
     }
 }

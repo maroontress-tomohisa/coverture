@@ -23,7 +23,7 @@ public final class ArcsRecord {
        位置はARCSレコードの次の位置に移動します。
 
        @param bb バイトバッファ
-       @throws IOException
+       @throws IOException 入出力エラー
     */
     public ArcsRecord(final ByteBuffer bb) throws IOException {
 	int length = bb.getInt();
