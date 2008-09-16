@@ -37,7 +37,7 @@
     </copy>
     <copy file="coverture.jar" todir="${prefix}/lib/coverture"/>
     <exec dir="." executable="install" failonerror="true">
-      <arg line="-c -m 0755 coverture.sh ${prefix}/bin/coverture"/>
+      <arg line="-c -d -m 0755 coverture.sh ${prefix}/bin/coverture"/>
     </exec>
   </target>
 
