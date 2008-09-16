@@ -30,12 +30,12 @@
   </target>
 
   <target name="install" depends="coverture.jar">
-    <copy file="coverture.sh.in" tofile="coverture.sh">
+    <copy file="coverture.sh.in" tofile="coverture.sh" overwrite="true">
       <filterset>
         <filter token="PREFIX" value="${prefix}"/>
       </filterset>
     </copy>
-    <copy file="coverture.jar" todir="${prefix}/lib/coverture"/>
+    <copy file="coverture.jar" todir="${prefix}/lib/coverture" overwrite="true"/>
     <exec dir="." executable="install" failonerror="true">
       <arg line="-d -m 0755 ${prefix}/bin"/>
     </exec>
