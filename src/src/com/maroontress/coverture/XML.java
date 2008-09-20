@@ -16,6 +16,7 @@ public final class XML {
         map.put('<', "&lt;");
         map.put('&', "&amp;");
         map.put('"', "&quot;");
+        map.put('\'', "&apos;");
     }
 
     /**
