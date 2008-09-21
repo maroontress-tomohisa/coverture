@@ -53,10 +53,27 @@ public final class Coverture {
     }
 
     /**
+       gcnoファイルをひとつ処理します。
+
+       @param name 入力するgcnoファイルのファイル名
+       @param out 出力先
+    */
+    private static void processFile(final String name,
+				    final PrintWriter out)
+	throws IOException, CorruptedFileException, UnexpectedTagException {
+	Note note = Note.parse(name);
+	if (note == null) {
+	    return;
+	}
+	note.printXML(out);
+	note.createSourceList();
+    }
+
+    /**
        ファイルからgcnoファイル名のリストを入力し、そのgcnoファイルを
        処理します。
 
-       @param inputFile 入力するファイル名
+       @param inputFile 入力するリストのファイル名
        @param out 出力先
        @throws IOException 入出力エラー
        @throws CorruptedFileException ファイルの構造が壊れていることを検出
@@ -69,8 +86,7 @@ public final class Coverture {
 	    BufferedReader rd = new BufferedReader(new FileReader(inputFile));
 	    String name;
 	    while ((name = rd.readLine()) != null) {
-		Note note = Note.parse(name);
-		note.printXML(out);
+		processFile(name, out);
 	    }
 	} catch (FileNotFoundException e) {
 	    System.err.println("File not found: " + e.getMessage());
@@ -106,11 +122,7 @@ public final class Coverture {
 	    PrintWriter out = new PrintWriter(System.out);
 	    out.println("<gcno>");
 	    for (; arg != null; arg = ap.getArgument()) {
-		Note note = Note.parse(arg.getName());
-		if (note == null) {
-		    continue;
-		}
-		note.printXML(out);
+		processFile(arg.getName(), out);
 	    }
 	    if (inputFile != null) {
 		processFileList(inputFile, out);

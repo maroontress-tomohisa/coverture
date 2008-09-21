@@ -61,6 +61,41 @@ public final class Block {
     private LineEntry[] lines;
 
     /**
+       行番号毎の実行回数をソースリストにマージします。
+
+       事前に実行回数のカウントが有効になっている必要があります。
+
+       @param sourceList ソースリスト
+    */
+    public void addLineCounts(final SourceList sourceList) {
+	if (lines == null) {
+	    return;
+	}
+	// 次のforの中はLineEntryに移せる...
+	// e.addLineCounts(sourcelist, count);
+	for (LineEntry e : lines) {
+	    String fileName = e.getFileName();
+	    int[] nums = e.getLines();
+	    if (nums.length == 0) {
+		continue;
+	    }
+	    Source source = sourcelist.getSource(fileName);
+	    for (int k = 0; k < nums.length; ++k) {
+		source.addLineCount(nums[k], count);
+	    }
+	}
+    }
+
+    /**
+       カウントを取得します。カウントが有効でないときは0を返します。
+
+       @return カウント
+    */
+    public long getCount() {
+	return (count < 0) ? 0 : count;
+    }
+
+    /**
        カウントの有効性を取得します。
 
        @return カウントが有効ならtrue、そうでなければfalse
@@ -109,6 +144,8 @@ public final class Block {
 	    out.printf("/>\n");
 	}
 	if (lines != null) {
+	    // 次のforの中はLineEntryに移せる...
+	    // e.printXML();
 	    for (LineEntry e : lines) {
 		String fileName = e.getFileName();
 		int[] nums = e.getLines();

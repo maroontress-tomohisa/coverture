@@ -21,6 +21,9 @@ import java.util.TreeMap;
 */
 public final class Note {
 
+    /** gcnoファイルです。 */
+    private File file;
+
     /** gcnoファイルのバージョン番号です。 */
     private int version;
 
@@ -43,15 +46,15 @@ public final class Note {
        ノートレコードからインスタンスを生成します。
 
        @param rec ノートレコード
-       @param lastModified gcnoファイルのファイルシステムのタイムスタ
-       ンプ
+       @param file gcnoファイル
        @throws CorruptedFileException ファイルの構造が壊れていることを検出
     */
-    private Note(final NoteRecord rec, final long lastModified)
+    private Note(final NoteRecord rec, final File file)
 	throws CorruptedFileException {
+	this.file = file;
 	version = rec.getVersion();
 	stamp = rec.getStamp();
-	this.lastModified = lastModified;
+	lastModified = file.lastModified();
 	map = new TreeMap<Integer, FunctionGraph>();
 
 	FunctionGraphRecord[] list = rec.getList();
@@ -59,6 +62,21 @@ public final class Note {
 	    FunctionGraph fg = new FunctionGraph(e);
 	    map.put(fg.getId(), fg);
 	}
+    }
+
+    /**
+       gcov互換のソースファイルのカバレッジを生成します。
+    */
+    public void createSourceList() {
+	SourceList sl = new SourceList();
+	Collection<FunctionGraph> allGraphs = map.values();
+	for (FunctionGraph g : allGraphs) {
+	    g.addLineCounts(sl);
+	}
+
+	String path = file.getPath();
+	path = path.substring(0, path.lastIndexOf('.')) + ".gcov";
+	sl.ouputFiles(path, lastModified);
     }
 
     /**
@@ -166,7 +184,7 @@ public final class Note {
 
 	try {
 	    NoteRecord noteRecord = new NoteRecord(bb);
-	    note = new Note(noteRecord, file.lastModified());
+	    note = new Note(noteRecord, file);
 	} catch (UnexpectedTagException e) {
 	    e.printStackTrace();
 	    return null;
