@@ -57,10 +57,9 @@ public final class DataRecord {
        @return FUNCTION_DATAレコードを入力した場合は0、そうでなければ-1
        @throws IOException 入出力エラー
        @throws CorruptedFileException ファイルの構造が壊れていることを検出
-       @throws UnexpectedTagException 予期しないタグを検出
     */
     private int parseFunctionData(final ByteBuffer bb)
-	throws IOException, UnexpectedTagException, CorruptedFileException {
+	throws IOException, CorruptedFileException {
 	int saved = bb.position();
 	int tag = bb.getInt();
 	switch (tag) {
@@ -82,9 +81,8 @@ public final class DataRecord {
        せん。成功した場合はバイトバッファの位置は終端に移動します。
 
        @param bb バイトバッファ
-       @throws IOException
-       @throws CorruptedFileException
-       @throws UnexpectedTagException
+       @throws IOException 入出力エラー
+       @throws CorruptedFileException ファイルの構造が壊れていることを検出
     */
     public DataRecord(final ByteBuffer bb)
 	throws IOException, UnexpectedTagException, CorruptedFileException {

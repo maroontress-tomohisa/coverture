@@ -1,6 +1,7 @@
 package com.maroontress.coverture;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.LineNumberReader;
@@ -90,12 +91,12 @@ public final class Source {
        gcov互換のカバレッジ結果を出力します。
 
        @param out 出力先
-       @param timestamp gcnoファイルのタイムスタンプ
+       @param origin gcnoファイルのオリジン
     */
-    private void outputLines(final PrintWriter out, final long timestamp)
+    private void outputLines(final PrintWriter out, final Origin origin)
 	throws IOException {
 	File file = new File(sourceFile);
-	if (file.lastModified() > timestamp) {
+	if (file.lastModified() > origin.getNoteFile().lastModified()) {
 	    System.err.printf("%s: source file is newer than gcno file\n",
 			      sourceFile);
 	    out.printf("%9s:%5d:Source is newer than gcno file\n", "-", 0);
@@ -134,15 +135,32 @@ public final class Source {
     }
 
     /**
+       カバレッジファイルを生成します。
+
+       @param origin gcnoファイルのオリジン
+       @param runs プログラムの実行回数
+       @param programs プログラムの数
     */
-    public void outputFile(final String pathPrefix, final long timestamp)
-	throws IOException {
-	String path = pathPrefix + "#" + sourceFile;
-	path = path.replaceAll("/", "#");
+    public void outputFile(final Origin origin, final int runs,
+			   final int programs) throws IOException {
+	String path = origin.getCoverageFilePath(sourceFile);
 	File file = new File(path);
-	PrintWriter out = new PrintWriter(file);
+	PrintWriter out;
 	try {
-	    outputLines(out, timestamp);
+	    out = new PrintWriter(file);
+	} catch (FileNotFoundException e) {
+	    System.out.printf("%s: can't open: %s\n", path, e.getMessage());
+	    return;
+	}
+	try {
+	    File gcnoFile = origin.getNoteFile();
+	    File gcdaFile = origin.getDataFile();
+	    out.printf("%9s:%5d:Source:%s\n", "-", 0, sourceFile);
+	    out.printf("%9s:%5d:Graph:%s\n", "-", 0, gcnoFile.getPath());
+	    out.printf("%9s:%5d:Data:%s\n", "-", 0, gcdaFile.getPath());
+	    out.printf("%9s:%5d:Runs:%d\n", "-", 0, runs);
+	    out.printf("%9s:%5d:Programs:%d\n", "-", 0, programs);
+	    outputLines(out, origin);
 	} finally {
 	    out.close();
 	}

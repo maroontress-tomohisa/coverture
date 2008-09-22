@@ -79,7 +79,7 @@ public final class Block {
 	    if (nums.length == 0) {
 		continue;
 	    }
-	    Source source = sourcelist.getSource(fileName);
+	    Source source = sourceList.getSource(fileName);
 	    for (int k = 0; k < nums.length; ++k) {
 		source.addLineCount(nums[k], count);
 	    }

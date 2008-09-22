@@ -66,10 +66,9 @@ public final class NoteRecord {
        @param bb バイトバッファ
        @throws IOException 入出力エラー
        @throws CorruptedFileException ファイルの構造が壊れていることを検出
-       @throws UnexpectedTagException 予期しないタグを検出
     */
     public NoteRecord(final ByteBuffer bb)
-	throws IOException, UnexpectedTagException, CorruptedFileException {
+	throws IOException, CorruptedFileException {
 	byte[] magic = new byte[4];
 	bb.get(magic);
 	if (Arrays.equals(magic, MAGIC_BE)) {

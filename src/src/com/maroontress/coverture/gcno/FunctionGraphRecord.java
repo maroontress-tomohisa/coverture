@@ -36,10 +36,9 @@ public final class FunctionGraphRecord {
        @param bb バイトバッファ
        @throws IOException 入出力エラー
        @throws CorruptedFileException ファイルの構造が壊れていることを検出
-       @throws UnexpectedTagException 予期しないタグを検出
     */
     public FunctionGraphRecord(final ByteBuffer bb)
-	throws IOException, UnexpectedTagException, CorruptedFileException {
+	throws IOException, CorruptedFileException {
 	announce = new AnnounceFunctionRecord(bb);
 	blocks = new BasicBlockRecord(bb);
 	arcs = new ArrayList<ArcsRecord>();
@@ -61,12 +60,11 @@ public final class FunctionGraphRecord {
 
        @param bb バイトバッファ
        @return ARCS/LINESレコードを入力した場合は0、そうでなければ-1
-       @throws IOException
-       @throws CorruptedFileException
-       @throws UnexpectedTagException
+       @throws IOException 入出力エラー
+       @throws CorruptedFileException ファイルの構造が壊れていることを検出
     */
     private int parseArcsOrLines(final ByteBuffer bb)
-	throws IOException, UnexpectedTagException, CorruptedFileException {
+	throws IOException, CorruptedFileException {
 	if (!bb.hasRemaining()) {
 	    return -1;
 	}

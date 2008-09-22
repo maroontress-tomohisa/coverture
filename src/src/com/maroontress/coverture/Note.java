@@ -21,8 +21,8 @@ import java.util.TreeMap;
 */
 public final class Note {
 
-    /** gcnoファイルです。 */
-    private File file;
+    /** gcnoファイルのオリジンです。 */
+    private Origin origin;
 
     /** gcnoファイルのバージョン番号です。 */
     private int version;
@@ -33,28 +33,27 @@ public final class Note {
     */
     private int stamp;
 
-    /**
-       gcnoファイルのファイルシステムでのタイムスタンプです。ソースファ
-       イルのタイムスタンプと比較するために使用されます。
-    */
-    private long lastModified;
-
     /** 関数グラフとその識別子のマップです。 */
     private TreeMap<Integer, FunctionGraph> map;
+
+    /** プログラムの実行回数です。 */
+    private int runs;
+
+    /** プログラムの数です。 */
+    private int programs;
 
     /**
        ノートレコードからインスタンスを生成します。
 
        @param rec ノートレコード
-       @param file gcnoファイル
+       @param origin gcnoファイルのオリジン
        @throws CorruptedFileException ファイルの構造が壊れていることを検出
     */
-    private Note(final NoteRecord rec, final File file)
+    private Note(final NoteRecord rec, final Origin origin)
 	throws CorruptedFileException {
-	this.file = file;
+	this.origin = origin;
 	version = rec.getVersion();
 	stamp = rec.getStamp();
-	lastModified = file.lastModified();
 	map = new TreeMap<Integer, FunctionGraph>();
 
 	FunctionGraphRecord[] list = rec.getList();
@@ -73,10 +72,7 @@ public final class Note {
 	for (FunctionGraph g : allGraphs) {
 	    g.addLineCounts(sl);
 	}
-
-	String path = file.getPath();
-	path = path.substring(0, path.lastIndexOf('.')) + ".gcov";
-	sl.ouputFiles(path, lastModified);
+	sl.outputFiles(origin, runs, programs);
     }
 
     /**
@@ -86,7 +82,7 @@ public final class Note {
     */
     public void printXML(final PrintWriter out) {
 	out.printf("<note version='0x%x' stamp='0x%x' lastModified='%d'>\n",
-		   version, stamp, lastModified);
+		   version, stamp, origin.getNoteFile().lastModified());
 	Collection<FunctionGraph> allGraphs = map.values();
 	for (FunctionGraph g : allGraphs) {
 	    g.printXML(out);
@@ -98,31 +94,35 @@ public final class Note {
        データレコードを設定します。
 
        @param rec データレコード
-       @param lastModified gcdaファイルのファイルシステムのタイムスタ
-       ンプ
-       @throws CorruptedFileException
+       @param file gcdaファイル
+       @throws CorruptedFileException ファイルの構造が壊れていることを検出
     */
-    private void setDataRecord(final DataRecord rec, final long lastModified)
+    private void setDataRecord(final DataRecord rec, final File file)
 	throws CorruptedFileException {
+	String path = origin.getNoteFile().getPath();
 	if (version != rec.getVersion()) {
-	    throw new CorruptedFileException("gcda file: version mismatch.");
+	    throw new CorruptedFileException(path + ": version mismatch.");
 	}
 	if (stamp != rec.getStamp()) {
-	    throw new CorruptedFileException("gcda file: timestamp mismatch.");
+	    throw new CorruptedFileException(path + ": timestamp mismatch.");
 	}
-	if (this.lastModified > lastModified) {
-	    System.out.println("warning: gcno file is newer than gcda file.");
+	if (origin.getNoteFile().lastModified() > file.lastModified()) {
+	    System.out.printf(
+		"%s: warning: gcno file is newer than gcda file.\n", path);
 	}
 	FunctionDataRecord[] list = rec.getList();
 	for (FunctionDataRecord e : list) {
 	    int id = e.getId();
 	    FunctionGraph g = map.get(id);
 	    if (g == null) {
-		System.out.printf("warning: unknown function id '%d'.", id);
+		System.out.printf(
+		    "%s: warning: unknown function id '%d'.\n", path, id);
 		continue;
 	    }
 	    g.setFunctionDataRecord(e);
 	}
+	runs = rec.getObjectSummary().getRuns();
+	programs = rec.getProgramSummaries().length;
     }
 
     /**
@@ -132,30 +132,29 @@ public final class Note {
        ファイルの内容が不正な場合は、標準エラー出力にスタックトレース
        を出力します。
 
-       @param path gcdaファイルのパス
+       @param origin gcnoファイルのオリジン
     */
-    private void parseData(final String path) {
-	if (!path.endsWith(".gcda")) {
-	    System.err.printf("%s: suffix is not '.gcda'.\n", path);
+    private void parseData(final Origin origin) {
+	File dataFile = origin.getDataFile();
+	RandomAccessFile file;
+	try {
+	    file = new RandomAccessFile(dataFile, "r");
+	} catch (FileNotFoundException e) {
+	    System.out.printf("%s: not found.\n", dataFile.getPath());
 	    return;
 	}
-	File file = new File(path);
+	FileChannel ch = file.getChannel();
 	try {
-	    FileChannel ch = new RandomAccessFile(file, "r").getChannel();
-	    ByteBuffer bb = ch.map(FileChannel.MapMode.READ_ONLY,
-				   0, ch.size());
 	    try {
+		ByteBuffer bb = ch.map(FileChannel.MapMode.READ_ONLY,
+				       0, ch.size());
 		DataRecord dataRecord = new DataRecord(bb);
-		setDataRecord(dataRecord, file.lastModified());
-	    } catch (UnexpectedTagException e) {
-		e.printStackTrace();
+		setDataRecord(dataRecord, dataFile);
 	    } catch (CorruptedFileException e) {
 		e.printStackTrace();
 	    } finally {
-		ch.close();
+		file.close();
 	    }
-	} catch (FileNotFoundException e) {
-	    System.err.println(path + ": not found");
 	} catch (IOException e) {
 	    e.printStackTrace();
 	}
@@ -170,31 +169,39 @@ public final class Note {
 
        @param path gcnoファイルのパス
        @return ノート
-       @throws IOException
     */
     public static Note parse(final String path) throws IOException {
 	if (!path.endsWith(".gcno")) {
-	    System.err.printf("%s: suffix is not '.gcno'.", path);
+	    System.out.printf("%s: suffix is not '.gcno'.\n", path);
 	    return null;
 	}
-	File file = new File(path);
-	FileChannel ch = new RandomAccessFile(file, "r").getChannel();
-	ByteBuffer bb = ch.map(FileChannel.MapMode.READ_ONLY, 0, ch.size());
-	Note note = null;
-
+	Origin origin = new Origin(path);
+	RandomAccessFile file;
 	try {
-	    NoteRecord noteRecord = new NoteRecord(bb);
-	    note = new Note(noteRecord, file);
-	} catch (UnexpectedTagException e) {
-	    e.printStackTrace();
+	    file = new RandomAccessFile(path, "r");
+	} catch (FileNotFoundException e) {
+	    System.out.printf("%s: not found.\n", path);
 	    return null;
-	} catch (CorruptedFileException e) {
-	    e.printStackTrace();
-	    return null;
-	} finally {
-	    ch.close();
 	}
-	note.parseData(path.substring(0, path.lastIndexOf('.')) + ".gcda");
+	FileChannel ch = file.getChannel();
+	Note note = null;
+	try {
+	    try {
+		ByteBuffer bb = ch.map(FileChannel.MapMode.READ_ONLY,
+				       0, ch.size());
+		NoteRecord noteRecord = new NoteRecord(bb);
+		note = new Note(noteRecord, origin);
+	    } catch (CorruptedFileException e) {
+		e.printStackTrace();
+		return null;
+	    } finally {
+		file.close();
+	    } 
+	} catch (IOException e) {
+	    e.printStackTrace();
+	    return null;
+	}
+	note.parseData(origin);
 	return note;
     }
 }

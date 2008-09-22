@@ -3,7 +3,7 @@ package com.maroontress.coverture;
 /**
    予期しないタグに遭遇したことを示す例外です。
 */
-public final class UnexpectedTagException extends Exception {
+public final class UnexpectedTagException extends CorruptedFileException {
 
     /**
        予期しないタグに遭遇したことを示す例外を生成します。

@@ -77,11 +77,10 @@ public final class Coverture {
        @param out 出力先
        @throws IOException 入出力エラー
        @throws CorruptedFileException ファイルの構造が壊れていることを検出
-       @throws UnexpectedTagException 予期しないタグを検出
     */
     private static void processFileList(final String inputFile,
 					final PrintWriter out)
-	throws IOException, CorruptedFileException, UnexpectedTagException {
+	throws IOException, CorruptedFileException {
 	try {
 	    BufferedReader rd = new BufferedReader(new FileReader(inputFile));
 	    String name;

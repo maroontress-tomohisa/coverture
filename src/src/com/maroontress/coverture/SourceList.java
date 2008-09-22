@@ -35,12 +35,18 @@ public final class SourceList {
     }
     
     /**
+       すべてのカバレッジファイルを生成します。
+
+       @param origin gcnoファイルのオリジン
+       @param runs プログラムの実行回数
+       @param programs プログラムの数
     */
-    public void ouputFiles(final String pathPrefix, final long timestamp) {
+    public void outputFiles(final Origin origin, final int runs,
+			    final int programs) {
 	Collection<Source> all = map.values();
 	for (Source s : all) {
 	    try {
-		s.outputFile(pathPrefix, timestamp);
+		s.outputFile(origin, runs, programs);
 	    } catch (IOException e) {
 		e.printStackTrace();
 	    }
