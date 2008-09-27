@@ -6,6 +6,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.LineNumberReader;
 import java.io.PrintWriter;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.TreeSet;
 
@@ -45,7 +46,7 @@ public final class Source {
     }
 
     /**
-       行番号の実行回数を加算します。
+       実行可能な行番号を通知し、その行番号の実行回数を加算します。
 
        @param lineNuber 行番号
        @param delta 実行回数
@@ -62,7 +63,9 @@ public final class Source {
     /**
        行番号の実行回数を取得します。
 
-       @param lineNuber
+       指定の行番号が実行可能でない場合は-1を返します。
+
+       @param lineNuber 行番号
        @return 実行回数
     */
     public long getLineCount(final int lineNuber) {
@@ -71,6 +74,40 @@ public final class Source {
 	    return -1;
 	}
 	return info.getCount();
+    }
+
+    /**
+       実行した行数を取得します。
+
+       @return 実行した行数
+    */
+    public int getExecutedLines() {
+	Collection<LineInfo> all = map.values();
+	int count = 0;
+	for (LineInfo i : all) {
+	    if (i.getCount() > 0) {
+		++count;
+	    }
+	}
+	return count;
+    }
+
+    /**
+       実行可能な行数を取得します。
+
+       @return 実行可能な行数
+    */
+    public int getExecutableLines() {
+	return map.size();
+    }
+
+    /**
+       ソースファイルのパスを取得します。
+
+       @return ソースファイルのパス
+    */
+    public String getPath() {
+	return sourceFile;
     }
 
     /**
@@ -84,7 +121,7 @@ public final class Source {
 	if (m == 0) {
 	    return 0;
 	}
-	return (int)(100.0 * n / m + 0.5);
+	return (int) (100.0 * n / m + 0.5);
     }
 
     /**
@@ -92,6 +129,7 @@ public final class Source {
 
        @param out 出力先
        @param origin gcnoファイルのオリジン
+       @throws IOException 入出力エラー
     */
     private void outputLines(final PrintWriter out, final Origin origin)
 	throws IOException {
@@ -103,11 +141,11 @@ public final class Source {
 	}
 	LineNumberReader in = new LineNumberReader(new FileReader(file));
 	String line;
+	Traverser<FunctionGraph> tr = new Traverser<FunctionGraph>(functions);
 	while ((line = in.readLine()) != null) {
 	    int num = in.getLineNumber();
-	    while (functions.size() > 0
-		   && functions.first().getLineNumber() == num) {
-		FunctionGraph fg = functions.pollFirst();
+	    while (tr.peek() != null && tr.peek().getLineNumber() == num) {
+		FunctionGraph fg = tr.poll();
 		long calledCount = fg.getCalledCount();
 		long returnedCount = fg.getReturnedCount();
 		int executedBlocks = fg.getExecutedBlockCount();
@@ -140,6 +178,7 @@ public final class Source {
        @param origin gcnoファイルのオリジン
        @param runs プログラムの実行回数
        @param programs プログラムの数
+       @throws IOException 入出力エラー
     */
     public void outputFile(final Origin origin, final int runs,
 			   final int programs) throws IOException {

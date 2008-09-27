@@ -57,10 +57,12 @@ public final class Coverture {
 
        @param name 入力するgcnoファイルのファイル名
        @param out 出力先
+       @throws IOException 入出力エラー
+       @throws CorruptedFileException ファイルの構造が壊れていることを検出
     */
     private static void processFile(final String name,
 				    final PrintWriter out)
-	throws IOException, CorruptedFileException, UnexpectedTagException {
+	throws IOException, CorruptedFileException {
 	Note note = Note.parse(name);
 	if (note == null) {
 	    return;

@@ -36,6 +36,9 @@ public final class Note {
     /** 関数グラフとその識別子のマップです。 */
     private TreeMap<Integer, FunctionGraph> map;
 
+    /** 関連するソースコードのリストです。 */
+    private SourceList sourceList;
+
     /** プログラムの実行回数です。 */
     private int runs;
 
@@ -55,6 +58,7 @@ public final class Note {
 	version = rec.getVersion();
 	stamp = rec.getStamp();
 	map = new TreeMap<Integer, FunctionGraph>();
+	sourceList = new SourceList();
 
 	FunctionGraphRecord[] list = rec.getList();
 	for (FunctionGraphRecord e : list) {
@@ -67,12 +71,18 @@ public final class Note {
        gcov互換のソースファイルのカバレッジを生成します。
     */
     public void createSourceList() {
-	SourceList sl = new SourceList();
-	Collection<FunctionGraph> allGraphs = map.values();
-	for (FunctionGraph g : allGraphs) {
-	    g.addLineCounts(sl);
+	sourceList.outputFiles(origin, runs, programs);
+    }
+
+    /**
+       ソースファイルのリストを更新します。gcdaファイルをパースした後
+       に呼び出す必要があります。
+    */
+    private void updateSourceList() {
+	Collection<FunctionGraph> all = map.values();
+	for (FunctionGraph g : all) {
+	    g.addLineCounts(sourceList);
 	}
-	sl.outputFiles(origin, runs, programs);
     }
 
     /**
@@ -83,8 +93,9 @@ public final class Note {
     public void printXML(final PrintWriter out) {
 	out.printf("<note version='0x%x' stamp='0x%x' lastModified='%d'>\n",
 		   version, stamp, origin.getNoteFile().lastModified());
-	Collection<FunctionGraph> allGraphs = map.values();
-	for (FunctionGraph g : allGraphs) {
+	sourceList.printXML(out);
+	Collection<FunctionGraph> allGraph = map.values();
+	for (FunctionGraph g : allGraph) {
 	    g.printXML(out);
 	}
 	out.printf("</note>\n");
@@ -196,12 +207,13 @@ public final class Note {
 		return null;
 	    } finally {
 		file.close();
-	    } 
+	    }
 	} catch (IOException e) {
 	    e.printStackTrace();
 	    return null;
 	}
 	note.parseData(origin);
+	note.updateSourceList();
 	return note;
     }
 }

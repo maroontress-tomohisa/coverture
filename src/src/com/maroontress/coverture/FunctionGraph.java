@@ -378,7 +378,7 @@ public final class FunctionGraph {
     }
 
     /**
-       関数が始まる行番号で比較するコンパレータです。 
+       関数が始まる行番号で比較するコンパレータです。
     */
     private static Comparator<FunctionGraph> lineNumberComparator;
 

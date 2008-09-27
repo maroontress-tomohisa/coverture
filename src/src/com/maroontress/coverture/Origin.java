@@ -24,7 +24,6 @@ public final class Origin {
        pathの拡張子は.gcnoでなければなりません。
 
        @param path gcnoファイルのパス
-       @throws IllegalArgumentException パスが.gcnoで終わらない場合
     */
     public Origin(final String path) {
 	if (!path.endsWith(".gcno")) {
