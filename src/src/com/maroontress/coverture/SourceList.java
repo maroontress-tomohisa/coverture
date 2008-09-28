@@ -2,6 +2,7 @@ package com.maroontress.coverture;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.HashMap;
 
@@ -41,13 +42,14 @@ public final class SourceList {
        @param origin gcnoファイルのオリジン
        @param runs プログラムの実行回数
        @param programs プログラムの数
+       @param inputChatset ソースファイルの文字集合
     */
     public void outputFiles(final Origin origin, final int runs,
-			    final int programs) {
+			    final int programs, final Charset inputChatset) {
 	Collection<Source> all = map.values();
 	for (Source s : all) {
 	    try {
-		s.outputFile(origin, runs, programs);
+		s.outputFile(origin, runs, programs, inputChatset);
 	    } catch (IOException e) {
 		e.printStackTrace();
 	    }

@@ -1,11 +1,13 @@
 package com.maroontress.coverture;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.LineNumberReader;
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.TreeSet;
@@ -129,17 +131,19 @@ public final class Source {
 
        @param out 出力先
        @param origin gcnoファイルのオリジン
+       @param inputChatset ソースファイルの文字集合
        @throws IOException 入出力エラー
     */
-    private void outputLines(final PrintWriter out, final Origin origin)
-	throws IOException {
+    private void outputLines(final PrintWriter out, final Origin origin,
+			     final Charset inputChatset) throws IOException {
 	File file = new File(sourceFile);
 	if (file.lastModified() > origin.getNoteFile().lastModified()) {
 	    System.err.printf("%s: source file is newer than gcno file\n",
 			      sourceFile);
 	    out.printf("%9s:%5d:Source is newer than gcno file\n", "-", 0);
 	}
-	LineNumberReader in = new LineNumberReader(new FileReader(file));
+	LineNumberReader in = new LineNumberReader(
+	    new InputStreamReader(new FileInputStream(file), inputChatset));
 	String line;
 	Traverser<FunctionGraph> tr = new Traverser<FunctionGraph>(functions);
 	while ((line = in.readLine()) != null) {
@@ -178,10 +182,12 @@ public final class Source {
        @param origin gcnoファイルのオリジン
        @param runs プログラムの実行回数
        @param programs プログラムの数
+       @param inputChatset ソースファイルの文字集合
        @throws IOException 入出力エラー
     */
     public void outputFile(final Origin origin, final int runs,
-			   final int programs) throws IOException {
+			    final int programs, final Charset inputChatset)
+	throws IOException {
 	String path = origin.getCoverageFilePath(sourceFile);
 	File file = new File(path);
 	PrintWriter out;
@@ -199,7 +205,7 @@ public final class Source {
 	    out.printf("%9s:%5d:Data:%s\n", "-", 0, gcdaFile.getPath());
 	    out.printf("%9s:%5d:Runs:%d\n", "-", 0, runs);
 	    out.printf("%9s:%5d:Programs:%d\n", "-", 0, programs);
-	    outputLines(out, origin);
+	    outputLines(out, origin, inputChatset);
 	} finally {
 	    out.close();
 	}
