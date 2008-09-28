@@ -1,6 +1,7 @@
 package com.maroontress.coverture;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
@@ -15,23 +16,31 @@ import java.util.Set;
 */
 public final class Coverture {
 
-    /** バッファのサイズ */
+    /** バッファのサイズです。 */
     private static final int BUFFER_SIZE = 4096;
 
-    /** */
+    /** gcovファイルを出力するかどうかのフラグです。 */
     private boolean outputGcov;
 
-    /** */
+    /** ファイルを出力するディレクトリです。 */
+    private File outputDir;
+
+    /** gcnoファイルのリストファイルのパスです。 */
     private String inputFile;
 
-    /** */
+    /** ソースファイルの文字集合です。 */
     private Charset sourceFileCharset;
 
-    /** */
+    /** gcnoファイルの文字集合です。 */
+    private Charset gcovFileCharset;
+
+    /**コマンドラインで指定されたgcnoファイルのパスの配列です。 */
     private String[] files;
 
     /**
        起動クラスのインスタンスを生成します。
+
+       @param av コマンドラインオプションの配列
     */
     private Coverture(final String[] av) {
 	final Options opt = new Options();
@@ -48,14 +57,24 @@ public final class Coverture {
 	    }
 	}, "Show version and exit.");
 
+	opt.add("output-dir", new OptionListener() {
+	    public void run(final String name, final String arg) {
+		outputDir = new File(arg);
+	    }
+	}, "DIR", "Specify where to place generated files.");
+
 	opt.add("input-file", new OptionListener() {
 	    public void run(final String name, final String arg) {
 		inputFile = arg;
 	    }
 	}, "FILE", "Read the list of files from %s.");
 
-	opt.add("source-file-charset", "CHARSET",
-		"Specify the charset of source files.");
+	opt.add("source-file-charset", new OptionListener() {
+	    public void run(final String name, final String arg)
+		throws OptionsParsingException {
+		sourceFileCharset = getCharset(arg);
+	    }
+	}, "CHARSET", "Specify the charset of source files.");
 
 	opt.add("gcov", new OptionListener() {
 	    public void run(final String name, final String arg) {
@@ -63,18 +82,18 @@ public final class Coverture {
 	    }
 	}, "Output .gcov files compatible with gcov.");
 
+	opt.add("gcov-file-charset", new OptionListener() {
+	    public void run(final String name, final String arg)
+		throws OptionsParsingException {
+		gcovFileCharset = getCharset(arg);
+	    }
+	}, "CHARSET", "Specify the charset of .gcov files.");
+
+	outputDir = new File(".");
 	sourceFileCharset = Charset.defaultCharset();
+	gcovFileCharset = Charset.defaultCharset();
 	try {
 	    files = opt.parse(av);
-	    String csn = opt.getValue("source-file-charset");
-	    if (csn != null) {
-		try {
-		    sourceFileCharset = Charset.forName(csn);
-		} catch (IllegalArgumentException e) {
-		    String m = "Unsupported charset: " + csn;
-		    throw new OptionsParsingException(m);
-		}
-	    }
 	} catch (OptionsParsingException e) {
 	    System.out.println(e.getMessage());
 	    usage(opt);
@@ -84,6 +103,27 @@ public final class Coverture {
 	}
     }
 
+    /**
+       文字集合を取得します。
+
+       csnがnullの場合はデフォルトの文字集合を返します。
+
+       @param csn 文字集合名、またはnull
+       @return 文字集合
+       @throws OptionsParsingException 指定の文字集合名を使用できない
+    */
+    private Charset getCharset(final String csn)
+	throws OptionsParsingException{
+	if (csn == null) {
+	    return Charset.defaultCharset();
+	}
+	try {
+	    return Charset.forName(csn);
+	} catch (IllegalArgumentException e) {
+	    throw new OptionsParsingException("Unsupported charset: " + csn);
+	}
+    }
+	
     /**
        gcnoファイルをひとつ処理します。
 
@@ -100,7 +140,9 @@ public final class Coverture {
 	}
 	note.printXML(out);
 	if (outputGcov) {
-	    note.createSourceList(sourceFileCharset);
+	    outputDir.mkdirs();
+	    note.createSourceList(sourceFileCharset,
+				  outputDir, gcovFileCharset);
 	}
     }
 
@@ -128,6 +170,7 @@ public final class Coverture {
     }
 
     /**
+       指定されたファイルの入出力を実行します。
     */
     private void run() {
 	try {
@@ -150,6 +193,8 @@ public final class Coverture {
 
     /**
        使用方法を表示して終了します。
+
+       @param opt コマンドラインオプションの定義
     */
     private static void usage(final Options opt) {
         System.err.print(""

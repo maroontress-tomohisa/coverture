@@ -8,25 +8,30 @@ import java.util.TreeMap;
 import java.util.ArrayList;
 
 /**
+  コマンドラインオプションの定義です。
 */
 public final class Options {
 
-    /** */
+    /** 引数なしのオプションのセットです。 */
     Set<String> options;
 
-    /** */
+    /** 引数ありのオプションのセットです。 */
     Set<String> argOptions;
 
-    /** */
+    /**
+       コマンドラインオプションの名前と引数の値のマップです。引数なし
+       のオプションでは、引数の値はnullになります。
+    */
     Map<String, String> valueMap;
 
-    /** */
+    /** オプションに遭遇したときに呼び出すリスナのマップです。 */
     Map<String, OptionListener> listenerMap;
 
-    /** */
+    /** オプションのヘルプメッセージのマップです。 */
     Map<String, String> helpMap;
 
     /**
+       コマンドラインオプションの定義を生成します。
     */
     public Options() {
 	options = new HashSet<String>();
@@ -37,22 +42,35 @@ public final class Options {
     }
 
     /**
+       ヘルプメッセージのマップを取得します。マップのキーはオプション
+       名、値はヘルプメッセージになります。引数ありのオプションでは、
+       オプション名は「名前=引数名」になります。
+
+       @return ヘルプメッセージのマップ
     */
     public Map<String, String> getHelpMap() {
 	return helpMap;
     }
 
     /**
+       引数なしのオプションの定義を追加します。
+
+       @param name オプション名
+       @param listener オプションリスナ
+       @param help ヘルプメッセージ
     */
     public void add(final String name,
 		    final OptionListener listener,
 		    final String help) {
-	options.add(name);
 	listenerMap.put(name, listener);
-	helpMap.put(name, help);
+	add(name, help);
     }
 
     /**
+       引数なしのオプションの定義を追加します。
+
+       @param name オプション名
+       @param help ヘルプメッセージ
     */
     public void add(final String name,
 		    final String help) {
@@ -61,17 +79,27 @@ public final class Options {
     }
 
     /**
+       引数ありのオプションの定義を追加します。
+
+       @param name オプション名
+       @param listener オプションリスナ
+       @param argName 引数の名前
+       @param help ヘルプメッセージ
     */
     public void add(final String name,
 		    final OptionListener listener,
 		    final String argName,
 		    final String help) {
-	argOptions.add(name);
 	listenerMap.put(name, listener);
-	helpMap.put(name + "=" + argName, String.format(help, argName));
+	add(name, argName, help);
     }
 
     /**
+       引数ありのオプションの定義を追加します。
+
+       @param name オプション名
+       @param argName 引数の名前
+       @param help ヘルプメッセージ
     */
     public void add(final String name,
 		    final String argName,
@@ -81,6 +109,11 @@ public final class Options {
     }
 
     /**
+       コマンドラインの引数をパースします。
+
+       @param av コマンドラインの引数の配列
+       @return オプションではない引数の配列
+       @throws OptionsParsingException 不正なオプションの指定
     */
     public String[] parse(final String av[]) throws OptionsParsingException {
 	ArrayList<String> args = new ArrayList<String>();
@@ -115,12 +148,25 @@ public final class Options {
     }
 
     /**
+       オプションの引数の値を取得します。オプションをパースした後に呼
+       び出す必要があります。
+
+       オプションが指定されないか、引数なしのオプションの場合は、null
+       を返します。
+
+       @param name オプションの名前
+       @return オプションの値、またはnull
     */
     public String getValue(final String name) {
 	return valueMap.get(name);
     }
 
     /**
+       オプションの指定の有無を取得します。オプションをパースした後に
+       呼び出す必要があります。
+
+       @param name オプションの名前
+       @return オプションが指定されていればtrue、そうでなければfalse
     */
     public boolean specified(final String name) {
 	return valueMap.containsKey(name);

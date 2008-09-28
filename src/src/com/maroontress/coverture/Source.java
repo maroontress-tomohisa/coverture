@@ -3,9 +3,11 @@ package com.maroontress.coverture;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.util.Collection;
@@ -131,11 +133,11 @@ public final class Source {
 
        @param out 出力先
        @param origin gcnoファイルのオリジン
-       @param inputChatset ソースファイルの文字集合
+       @param inputCharset ソースファイルの文字集合
        @throws IOException 入出力エラー
     */
     private void outputLines(final PrintWriter out, final Origin origin,
-			     final Charset inputChatset) throws IOException {
+			     final Charset inputCharset) throws IOException {
 	File file = new File(sourceFile);
 	if (file.lastModified() > origin.getNoteFile().lastModified()) {
 	    System.err.printf("%s: source file is newer than gcno file\n",
@@ -143,7 +145,7 @@ public final class Source {
 	    out.printf("%9s:%5d:Source is newer than gcno file\n", "-", 0);
 	}
 	LineNumberReader in = new LineNumberReader(
-	    new InputStreamReader(new FileInputStream(file), inputChatset));
+	    new InputStreamReader(new FileInputStream(file), inputCharset));
 	String line;
 	Traverser<FunctionGraph> tr = new Traverser<FunctionGraph>(functions);
 	while ((line = in.readLine()) != null) {
@@ -182,17 +184,22 @@ public final class Source {
        @param origin gcnoファイルのオリジン
        @param runs プログラムの実行回数
        @param programs プログラムの数
-       @param inputChatset ソースファイルの文字集合
+       @param inputCharset ソースファイルの文字集合
+       @param outputDir 出力先ディレクトリ
+       @param outputCharset gcovファイルの文字集合
        @throws IOException 入出力エラー
     */
     public void outputFile(final Origin origin, final int runs,
-			    final int programs, final Charset inputChatset)
+			   final int programs, final Charset inputCharset,
+			   final File outputDir, final Charset outputCharset)
 	throws IOException {
 	String path = origin.getCoverageFilePath(sourceFile);
-	File file = new File(path);
+	File file = new File(outputDir, path);
 	PrintWriter out;
 	try {
-	    out = new PrintWriter(file);
+	    out = new PrintWriter(
+		new OutputStreamWriter(new FileOutputStream(file),
+				       outputCharset));
 	} catch (FileNotFoundException e) {
 	    System.out.printf("%s: can't open: %s\n", path, e.getMessage());
 	    return;
@@ -205,7 +212,7 @@ public final class Source {
 	    out.printf("%9s:%5d:Data:%s\n", "-", 0, gcdaFile.getPath());
 	    out.printf("%9s:%5d:Runs:%d\n", "-", 0, runs);
 	    out.printf("%9s:%5d:Programs:%d\n", "-", 0, programs);
-	    outputLines(out, origin, inputChatset);
+	    outputLines(out, origin, inputCharset);
 	} finally {
 	    out.close();
 	}

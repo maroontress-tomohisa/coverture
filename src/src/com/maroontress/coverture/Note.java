@@ -71,10 +71,15 @@ public final class Note {
     /**
        gcov互換のソースファイルのカバレッジを生成します。
 
-       @param inputChatset ソースファイルの文字集合
+       @param inputCharset ソースファイルの文字集合
+       @param outputDir 出力先ディレクトリ
+       @param outputCharset gcovファイルの文字集合
     */
-    public void createSourceList(final Charset inputChatset) {
-	sourceList.outputFiles(origin, runs, programs, inputChatset);
+    public void createSourceList(final Charset inputCharset,
+				 final File outputDir,
+				 final Charset outputCharset) {
+	sourceList.outputFiles(origin, runs, programs, inputCharset,
+			       outputDir, outputCharset);
     }
 
     /**
