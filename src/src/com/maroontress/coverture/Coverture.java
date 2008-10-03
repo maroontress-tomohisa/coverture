@@ -26,6 +26,12 @@ public final class Coverture {
     /** バッファのサイズです。 */
     private static final int BUFFER_SIZE = 4096;
 
+    /** デフォルトのスレッドの個数。 */
+    private static final int DEFAULT_THREADS = 4;
+
+    /** ヘルプメッセージのインデントの深さです。 */
+    private static final int HELP_INDENT_COUNT = 36;
+
     /** gcovファイルを出力するかどうかのフラグです。 */
     private boolean outputGcov;
 
@@ -47,6 +53,9 @@ public final class Coverture {
     /** Noteインスタンスを生成する非同期タスクのキューです。 */
     private CompletionService<Note> service;
 
+    /** gcnoファイルをパースするスレッドの個数です。 */
+    private int threads;
+
     /**
        起動クラスのインスタンスを生成します。
 
@@ -54,6 +63,11 @@ public final class Coverture {
     */
     private Coverture(final String[] av) {
 	final Options opt = new Options();
+	String helpIndent = "";
+	for (int k = 0; k < HELP_INDENT_COUNT; ++k) {
+	    helpIndent += " ";
+	}
+	threads = DEFAULT_THREADS;
 	ioProperties = new IOProperties();
 
 	opt.add("help", new OptionListener() {
@@ -100,6 +114,24 @@ public final class Coverture {
 	    }
 	}, "CHARSET", "Specify the charset of .gcov files.");
 
+	opt.add("threads", new OptionListener() {
+	    public void run(final String name, final String arg)
+		throws OptionsParsingException {
+		String m = "invalid value: " + arg;
+		int num;
+		try {
+		    num = Integer.valueOf(arg);
+		} catch (NumberFormatException e) {
+		    throw new OptionsParsingException(m);
+		}
+		if (num <= 0) {
+		    throw new OptionsParsingException(m);
+		}
+		threads = num;
+	    }
+	}, "NUM", "Specify the number of parser threads:\n"
+		+ helpIndent + "NUM > 0; 4 is the default.");
+
 	try {
 	    files = opt.parse(av);
 	} catch (OptionsParsingException e) {
@@ -110,7 +142,7 @@ public final class Coverture {
 	    usage(opt);
 	}
 	service = new ExecutorCompletionService<Note>(
-	    Executors.newFixedThreadPool(4));
+	    Executors.newFixedThreadPool(threads));
     }
 
     /**
