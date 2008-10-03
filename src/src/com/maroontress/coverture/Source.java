@@ -1,15 +1,10 @@
 package com.maroontress.coverture;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.LineNumberReader;
-import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.TreeSet;
@@ -132,20 +127,11 @@ public final class Source {
        gcov互換のカバレッジ結果を出力します。
 
        @param out 出力先
-       @param origin gcnoファイルのオリジン
-       @param inputCharset ソースファイルの文字集合
+       @param in ソースファイルのリーダ
        @throws IOException 入出力エラー
     */
-    private void outputLines(final PrintWriter out, final Origin origin,
-			     final Charset inputCharset) throws IOException {
-	File file = new File(sourceFile);
-	if (file.lastModified() > origin.getNoteFile().lastModified()) {
-	    System.err.printf("%s: source file is newer than gcno file\n",
-			      sourceFile);
-	    out.printf("%9s:%5d:Source is newer than gcno file\n", "-", 0);
-	}
-	LineNumberReader in = new LineNumberReader(
-	    new InputStreamReader(new FileInputStream(file), inputCharset));
+    private void outputGcovFile(final PrintWriter out,
+				final LineNumberReader in) throws IOException {
 	String line;
 	Traverser<FunctionGraph> tr = new Traverser<FunctionGraph>(functions);
 	while ((line = in.readLine()) != null) {
@@ -175,7 +161,31 @@ public final class Source {
 	    }
 	    out.printf("%9s:%5d:%s\n", mark, num, line);
 	}
-	in.close();
+    }
+
+    /**
+       gcov互換のカバレッジ結果を出力します。
+
+       @param out 出力先
+       @param origin gcnoファイルのオリジン
+       @param prop 入出力プロパティ
+       @throws IOException 入出力エラー
+    */
+    private void outputLines(final PrintWriter out, final Origin origin,
+			     final IOProperties prop) throws IOException {
+	File file = new File(sourceFile);
+	if (file.lastModified() > origin.getNoteFile().lastModified()) {
+	    System.err.printf("%s: source file is newer than gcno file\n",
+			      sourceFile);
+	    out.printf("%9s:%5d:Source is newer than gcno file\n", "-", 0);
+	}
+	LineNumberReader in
+	    = new LineNumberReader(prop.createSourceFileReader(file));
+	try {
+	    outputGcovFile(out, in);
+	} finally {
+	    in.close();
+	}
     }
 
     /**
@@ -184,22 +194,16 @@ public final class Source {
        @param origin gcnoファイルのオリジン
        @param runs プログラムの実行回数
        @param programs プログラムの数
-       @param inputCharset ソースファイルの文字集合
-       @param outputDir 出力先ディレクトリ
-       @param outputCharset gcovファイルの文字集合
+       @param prop 入出力プロパティ
        @throws IOException 入出力エラー
     */
     public void outputFile(final Origin origin, final int runs,
-			   final int programs, final Charset inputCharset,
-			   final File outputDir, final Charset outputCharset)
+			   final int programs, final IOProperties prop)
 	throws IOException {
 	String path = origin.getCoverageFilePath(sourceFile);
-	File file = new File(outputDir, path);
 	PrintWriter out;
 	try {
-	    out = new PrintWriter(
-		new OutputStreamWriter(new FileOutputStream(file),
-				       outputCharset));
+	    out = new PrintWriter(prop.createGcovWriter(path));
 	} catch (FileNotFoundException e) {
 	    System.out.printf("%s: can't open: %s\n", path, e.getMessage());
 	    return;
@@ -212,7 +216,7 @@ public final class Source {
 	    out.printf("%9s:%5d:Data:%s\n", "-", 0, gcdaFile.getPath());
 	    out.printf("%9s:%5d:Runs:%d\n", "-", 0, runs);
 	    out.printf("%9s:%5d:Programs:%d\n", "-", 0, programs);
-	    outputLines(out, origin, inputCharset);
+	    outputLines(out, origin, prop);
 	} finally {
 	    out.close();
 	}

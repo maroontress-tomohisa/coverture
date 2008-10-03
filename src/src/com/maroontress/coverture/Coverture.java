@@ -10,6 +10,13 @@ import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletionService;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
    Covertureの起動クラスです。
@@ -22,20 +29,23 @@ public final class Coverture {
     /** gcovファイルを出力するかどうかのフラグです。 */
     private boolean outputGcov;
 
-    /** ファイルを出力するディレクトリです。 */
-    private File outputDir;
-
     /** gcnoファイルのリストファイルのパスです。 */
     private String inputFile;
 
-    /** ソースファイルの文字集合です。 */
-    private Charset sourceFileCharset;
+    /** 入出力プロパティです。 */
+    private IOProperties ioProperties;
 
-    /** gcnoファイルの文字集合です。 */
-    private Charset gcovFileCharset;
-
-    /**コマンドラインで指定されたgcnoファイルのパスの配列です。 */
+    /** コマンドラインで指定されたgcnoファイルのパスの配列です。 */
     private String[] files;
+
+    /**
+       処理するファイルの個数です。files.lengthに--input-fileで指定し
+       たファイルリストの個数を加えたものになります。
+    */
+    private int taskCount;
+
+    /** Noteインスタンスを生成する非同期タスクのキューです。 */
+    private CompletionService<Note> service;
 
     /**
        起動クラスのインスタンスを生成します。
@@ -44,6 +54,7 @@ public final class Coverture {
     */
     private Coverture(final String[] av) {
 	final Options opt = new Options();
+	ioProperties = new IOProperties();
 
 	opt.add("help", new OptionListener() {
 	    public void run(final String name, final String arg) {
@@ -59,7 +70,7 @@ public final class Coverture {
 
 	opt.add("output-dir", new OptionListener() {
 	    public void run(final String name, final String arg) {
-		outputDir = new File(arg);
+		ioProperties.setOutputDir(new File(arg));
 	    }
 	}, "DIR", "Specify where to place generated files.");
 
@@ -72,7 +83,7 @@ public final class Coverture {
 	opt.add("source-file-charset", new OptionListener() {
 	    public void run(final String name, final String arg)
 		throws OptionsParsingException {
-		sourceFileCharset = getCharset(arg);
+		ioProperties.setSourceFileCharset(getCharset(arg));
 	    }
 	}, "CHARSET", "Specify the charset of source files.");
 
@@ -85,13 +96,10 @@ public final class Coverture {
 	opt.add("gcov-file-charset", new OptionListener() {
 	    public void run(final String name, final String arg)
 		throws OptionsParsingException {
-		gcovFileCharset = getCharset(arg);
+		ioProperties.setGcovFileCharset(getCharset(arg));
 	    }
 	}, "CHARSET", "Specify the charset of .gcov files.");
 
-	outputDir = new File(".");
-	sourceFileCharset = Charset.defaultCharset();
-	gcovFileCharset = Charset.defaultCharset();
 	try {
 	    files = opt.parse(av);
 	} catch (OptionsParsingException e) {
@@ -101,6 +109,8 @@ public final class Coverture {
 	if (files.length == 0 && inputFile == null) {
 	    usage(opt);
 	}
+	service = new ExecutorCompletionService<Note>(
+	    Executors.newFixedThreadPool(4));
     }
 
     /**
@@ -123,27 +133,26 @@ public final class Coverture {
 	    throw new OptionsParsingException("Unsupported charset: " + csn);
 	}
     }
-	
+
     /**
        gcnoファイルをひとつ処理します。
 
        @param name 入力するgcnoファイルのファイル名
-       @param out 出力先
-       @throws IOException 入出力エラー
-       @throws CorruptedFileException ファイルの構造が壊れていることを検出
     */
-    private void processFile(final String name, final PrintWriter out)
-	throws IOException, CorruptedFileException {
-	Note note = Note.parse(name);
-	if (note == null) {
-	    return;
-	}
-	note.printXML(out);
-	if (outputGcov) {
-	    outputDir.mkdirs();
-	    note.createSourceList(sourceFileCharset,
-				  outputDir, gcovFileCharset);
-	}
+    private void processFile(final String name) {
+	++taskCount;
+	service.submit(new Callable<Note>() {
+	    public Note call() throws Exception {
+		Note note = Note.parse(name);
+		if (note == null) {
+		    return null;
+		}
+		if (outputGcov) {
+		    note.createSourceList(ioProperties);
+		}
+		return note;
+	    }
+	});
     }
 
     /**
@@ -151,20 +160,17 @@ public final class Coverture {
        処理します。
 
        @param inputFile 入力するリストのファイル名
-       @param out 出力先
        @throws IOException 入出力エラー
-       @throws CorruptedFileException ファイルの構造が壊れていることを検出
     */
-    private void processFileList(final String inputFile, final PrintWriter out)
-	throws IOException, CorruptedFileException {
+    private void processFileList(final String inputFile) throws IOException {
 	try {
 	    BufferedReader rd = new BufferedReader(new FileReader(inputFile));
 	    String name;
 	    while ((name = rd.readLine()) != null) {
-		processFile(name, out);
+		processFile(name);
 	    }
 	} catch (FileNotFoundException e) {
-	    System.err.println("File not found: " + e.getMessage());
+	    System.err.printf("%s: not found: %s", inputFile, e.getMessage());
 	    System.exit(1);
 	}
     }
@@ -174,16 +180,35 @@ public final class Coverture {
     */
     private void run() {
 	try {
-	    PrintWriter out = new PrintWriter(System.out);
-	    out.println("<gcno>");
+	    if (outputGcov) {
+		ioProperties.makeOutputDir();
+	    }
 	    for (String arg : files) {
-		processFile(arg, out);
+		processFile(arg);
 	    }
 	    if (inputFile != null) {
-		processFileList(inputFile, out);
+		processFileList(inputFile);
+	    }
+
+	    TreeSet<Note> set = new TreeSet<Note>(Note.getOriginComparator());
+	    for (int k = 0; k < taskCount; ++k) {
+		Future<Note> future = service.take();
+		Note note = future.get();
+		if (note == null) {
+		    continue;
+		}
+		set.add(note);
+	    }
+	    PrintWriter out = new PrintWriter(System.out);
+	    out.println("<gcno>");
+	    for (Note note : set) {
+		note.printXML(out);
 	    }
 	    out.println("</gcno>");
 	    out.close();
+	} catch (ExecutionException e) {
+	    e.getCause().printStackTrace();
+	    System.exit(1);
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.exit(1);

@@ -15,6 +15,7 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.TreeMap;
 
 /**
@@ -71,15 +72,10 @@ public final class Note {
     /**
        gcov互換のソースファイルのカバレッジを生成します。
 
-       @param inputCharset ソースファイルの文字集合
-       @param outputDir 出力先ディレクトリ
-       @param outputCharset gcovファイルの文字集合
+       @param prop 入出力プロパティ
     */
-    public void createSourceList(final Charset inputCharset,
-				 final File outputDir,
-				 final Charset outputCharset) {
-	sourceList.outputFiles(origin, runs, programs, inputCharset,
-			       outputDir, outputCharset);
+    public void createSourceList(final IOProperties prop) {
+	sourceList.outputFiles(origin, runs, programs, prop);
     }
 
     /**
@@ -99,8 +95,11 @@ public final class Note {
        @param out 出力先
     */
     public void printXML(final PrintWriter out) {
-	out.printf("<note version='0x%x' stamp='0x%x' lastModified='%d'>\n",
-		   version, stamp, origin.getNoteFile().lastModified());
+	File file = origin.getNoteFile();
+	out.printf("<note file='%s' version='0x%x' stamp='0x%x'"
+		   + " lastModified='%d'>\n",
+		   XML.escape(file.getPath()), version, stamp,
+		   file.lastModified());
 	sourceList.printXML(out);
 	Collection<FunctionGraph> allGraph = map.values();
 	for (FunctionGraph g : allGraph) {
@@ -223,5 +222,29 @@ public final class Note {
 	note.parseData(origin);
 	note.updateSourceList();
 	return note;
+    }
+
+    /**
+       オリジンで比較するコンパレータです。
+    */
+    private static Comparator<Note> originComparator;
+
+    static {
+	originComparator = new Comparator<Note>() {
+	    public int compare(final Note n1,
+			       final Note n2) {
+		return n1.origin.compareTo(n2.origin);
+	    }
+	};
+    }
+
+    /**
+       オリジンで比較するコンパレータを返します。
+
+       @return オリジンで比較するコンパレータ
+    */
+    public static Comparator<Note> getOriginComparator() {
+	// Comparableを実装してもいいけど...
+	return originComparator;
     }
 }

@@ -8,27 +8,27 @@ import java.util.TreeMap;
 import java.util.ArrayList;
 
 /**
-  コマンドラインオプションの定義です。
+   コマンドラインオプションの定義です。
 */
 public final class Options {
 
     /** 引数なしのオプションのセットです。 */
-    Set<String> options;
+    private Set<String> options;
 
     /** 引数ありのオプションのセットです。 */
-    Set<String> argOptions;
+    private Set<String> argOptions;
 
     /**
        コマンドラインオプションの名前と引数の値のマップです。引数なし
        のオプションでは、引数の値はnullになります。
     */
-    Map<String, String> valueMap;
+    private Map<String, String> valueMap;
 
     /** オプションに遭遇したときに呼び出すリスナのマップです。 */
-    Map<String, OptionListener> listenerMap;
+    private Map<String, OptionListener> listenerMap;
 
     /** オプションのヘルプメッセージのマップです。 */
-    Map<String, String> helpMap;
+    private Map<String, String> helpMap;
 
     /**
        コマンドラインオプションの定義を生成します。

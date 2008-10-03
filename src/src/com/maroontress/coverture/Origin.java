@@ -5,7 +5,7 @@ import java.io.File;
 /**
    gcnoファイルに関係するパスを管理します。
 */
-public final class Origin {
+public final class Origin implements Comparable<Origin> {
 
     /** gcnoファイルです。 */
     private File gcnoFile;
@@ -81,5 +81,19 @@ public final class Origin {
     */
     public String getCoverageFilePath(final String sourceFile) {
 	return pathPrefix + "##" + escapeGcov(sourceFile) + ".gcov";
+    }
+
+    /**
+       生成するのに使用したgcnoファイルのパスで、2つのオリジンを語彙的
+       に比較します。
+
+       @param origin このオリジンと比較されるオリジン
+       @return 引数がこのオリジンと等しい場合は0。このオリジンが引数よ
+       り語彙的に小さい場合は負の値。このオリジンが引数より語彙的に大
+       きい場合は正の値
+       @see java.io.File#compareTo(File)
+    */
+    public int compareTo(final Origin origin) {
+	return gcnoFile.compareTo(origin.gcnoFile);
     }
 }

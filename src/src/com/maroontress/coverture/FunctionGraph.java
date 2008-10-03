@@ -226,7 +226,7 @@ public final class FunctionGraph {
     /**
        フローグラフを解きます。
 
-       @throws CorruptedFileException
+       @throws CorruptedFileException ファイルの構造が壊れていることを検出
     */
     private void solveFlowGraph() throws CorruptedFileException {
 	LinkedList<Block> invalidBlocks = new LinkedList<Block>();
@@ -282,7 +282,7 @@ public final class FunctionGraph {
        関数データレコードを関数グラフに追加します。
 
        @param rec 関数データレコード
-       @throws CorruptedFileException
+       @throws CorruptedFileException ファイルの構造が壊れていることを検出
     */
     public void setFunctionDataRecord(final FunctionDataRecord rec)
 	throws CorruptedFileException {
@@ -382,20 +382,21 @@ public final class FunctionGraph {
     */
     private static Comparator<FunctionGraph> lineNumberComparator;
 
+    static {
+	lineNumberComparator = new Comparator<FunctionGraph>() {
+	    public int compare(final FunctionGraph fg1,
+			       final FunctionGraph fg2) {
+		return fg1.lineNumber - fg2.lineNumber;
+	    }
+	};
+    }
+
     /**
        関数が始まる行番号で比較するコンパレータを返します。
 
        @return 関数が始まる行番号で比較するコンパレータ
     */
     public static Comparator<FunctionGraph> getLineNumberComparator() {
-	if (lineNumberComparator == null) {
-	    lineNumberComparator = new Comparator<FunctionGraph>() {
-		public int compare(final FunctionGraph fg1,
-				   final FunctionGraph fg2) {
-		    return fg1.lineNumber - fg2.lineNumber;
-		}
-	    };
-	}
 	return lineNumberComparator;
     }
 }
