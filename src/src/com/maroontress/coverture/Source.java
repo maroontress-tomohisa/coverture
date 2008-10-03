@@ -205,7 +205,7 @@ public final class Source {
 	try {
 	    out = new PrintWriter(prop.createGcovWriter(path));
 	} catch (FileNotFoundException e) {
-	    System.out.printf("%s: can't open: %s\n", path, e.getMessage());
+	    System.err.printf("%s: can't open: %s\n", path, e.getMessage());
 	    return;
 	}
 	try {

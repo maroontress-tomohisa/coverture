@@ -125,7 +125,7 @@ public final class Note {
 	    throw new CorruptedFileException(path + ": timestamp mismatch.");
 	}
 	if (origin.getNoteFile().lastModified() > file.lastModified()) {
-	    System.out.printf(
+	    System.err.printf(
 		"%s: warning: gcno file is newer than gcda file.\n", path);
 	}
 	FunctionDataRecord[] list = rec.getList();
@@ -133,7 +133,7 @@ public final class Note {
 	    int id = e.getId();
 	    FunctionGraph g = map.get(id);
 	    if (g == null) {
-		System.out.printf(
+		System.err.printf(
 		    "%s: warning: unknown function id '%d'.\n", path, id);
 		continue;
 	    }
@@ -158,7 +158,7 @@ public final class Note {
 	try {
 	    file = new RandomAccessFile(dataFile, "r");
 	} catch (FileNotFoundException e) {
-	    System.out.printf("%s: not found.\n", dataFile.getPath());
+	    System.err.printf("%s: not found.\n", dataFile.getPath());
 	    return;
 	}
 	FileChannel ch = file.getChannel();
@@ -190,7 +190,7 @@ public final class Note {
     */
     public static Note parse(final String path) throws IOException {
 	if (!path.endsWith(".gcno")) {
-	    System.out.printf("%s: suffix is not '.gcno'.\n", path);
+	    System.err.printf("%s: suffix is not '.gcno'.\n", path);
 	    return null;
 	}
 	Origin origin = new Origin(path);
@@ -198,7 +198,7 @@ public final class Note {
 	try {
 	    file = new RandomAccessFile(path, "r");
 	} catch (FileNotFoundException e) {
-	    System.out.printf("%s: not found.\n", path);
+	    System.err.printf("%s: not found.\n", path);
 	    return null;
 	}
 	FileChannel ch = file.getChannel();

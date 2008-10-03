@@ -135,7 +135,7 @@ public final class Coverture {
 	try {
 	    files = opt.parse(av);
 	} catch (OptionsParsingException e) {
-	    System.out.println(e.getMessage());
+	    System.err.println(e.getMessage());
 	    usage(opt);
 	}
 	if (files.length == 0 && inputFile == null) {
