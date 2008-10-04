@@ -1,6 +1,7 @@
 package com.maroontress.coverture;
 
 import java.io.File;
+import java.util.ArrayList;
 
 /**
    gcnoファイルに関係するパスを管理します。
@@ -43,8 +44,27 @@ public final class Origin implements Comparable<Origin> {
        @return エスケープしたパス
     */
     private String escapeGcov(final String path) {
-	String s = path.replace(File.separatorChar, '#');
-	return s.replaceAll("#\\.#", "#").replaceAll("#\\.\\.#", "#^#");
+	String[] allComp = path.replace(File.separatorChar, '#').split("#+");
+	ArrayList<String> list = new ArrayList<String>();
+	for (String comp : allComp) {
+	    if (comp.equals(".")) {
+		continue;
+	    }
+	    if (comp.equals("..")) {
+		comp = "^";
+	    }
+	    list.add(comp);
+	}
+	int n = list.size();
+	if (n == 0) {
+	    return "";
+	}
+	StringBuilder b = new StringBuilder(list.get(0));
+	for (int k = 1; k < n; ++k) {
+	    b.append("#");
+	    b.append(list.get(k));
+	}
+	return b.toString();
     }
 
     /**
