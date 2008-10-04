@@ -109,6 +109,9 @@ public final class DataRecord {
 	    int tag = bb.getInt();
 	    switch (tag) {
 	    default:
+		if (tag == 0 && !bb.hasRemaining()) {
+		    return;
+		}
 		String m = String.format("unexpected tag: 0x%x", tag);
 		throw new UnexpectedTagException(m);
 	    case Tag.FUNCTION:
