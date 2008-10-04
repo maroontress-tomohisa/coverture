@@ -68,6 +68,7 @@ public final class Block {
        @param sourceList ソースリスト
     */
     public void addLineCounts(final SourceList sourceList) {
+	assert(count >= 0);
 	if (lines == null) {
 	    return;
 	}

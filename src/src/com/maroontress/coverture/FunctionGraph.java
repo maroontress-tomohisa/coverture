@@ -68,11 +68,14 @@ public final class FunctionGraph {
        ソースリストにこの関数グラフを追加し、すべてのブロックの行番号
        毎の実行回数をマージします。
 
-       事前にフローグラフが解決していなければなりません。
+       フローグラフが解決していない場合は何もしません。
 
        @param sourceList ソースリスト
     */
     public void addLineCounts(final SourceList sourceList) {
+	if (!solved) {
+	    return;
+	}
 	Source source = sourceList.getSource(sourceFile);
 	source.addFunctionGraph(this);
 	for (Block b : blocks) {
