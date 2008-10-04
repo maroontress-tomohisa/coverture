@@ -93,7 +93,8 @@ public final class Coverture {
 	    public void run(final String name, final String arg) {
 		inputFile = arg;
 	    }
-	}, "FILE", "Read the list of files from %s.");
+	}, "FILE", "Read the list of files from FILE:\n"
+		+ helpIndent + "FILE can be - for standard input.");
 
 	opt.add("source-file-charset", new OptionListener() {
 	    public void run(final String name, final String arg)
@@ -266,7 +267,9 @@ public final class Coverture {
 + "Options are:\n");
 	Set<Map.Entry<String, String>> set = opt.getHelpMap().entrySet();
 	for (Map.Entry<String, String> e : set) {
-	    System.err.printf("  --%-30s  %s\n", e.getKey(), e.getValue());
+	    int w = HELP_INDENT_COUNT - 6;
+	    System.err.printf("  --%-" + w + "s  %s\n",
+			      e.getKey(), e.getValue());
 	}
         System.exit(1);
     }

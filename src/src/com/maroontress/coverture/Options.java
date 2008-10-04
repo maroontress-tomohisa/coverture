@@ -105,7 +105,7 @@ public final class Options {
 		    final String argName,
 		    final String help) {
 	argOptions.add(name);
-	helpMap.put(name + "=" + argName, String.format(help, argName));
+	helpMap.put(name + "=" + argName, help);
     }
 
     /**
