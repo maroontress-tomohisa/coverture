@@ -6,6 +6,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.util.Map;
@@ -196,7 +197,13 @@ public final class Coverture {
     */
     private void processFileList(final String inputFile) throws IOException {
 	try {
-	    BufferedReader rd = new BufferedReader(new FileReader(inputFile));
+	    InputStreamReader in;
+	    if (inputFile.equals("-")) {
+		in = new InputStreamReader(System.in);
+	    } else {
+		in = new FileReader(inputFile);
+	    }
+	    BufferedReader rd = new BufferedReader(in);
 	    String name;
 	    while ((name = rd.readLine()) != null) {
 		processFile(name);
