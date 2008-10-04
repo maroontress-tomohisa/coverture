@@ -15,6 +15,9 @@ import java.nio.charset.Charset;
 */
 public final class IOProperties {
 
+    /** より多くのメッセージを出力するかどうかのフラグです。 */
+    private boolean verbose;
+
     /** ファイルを出力するディレクトリです。 */
     private File outputDir;
 
@@ -28,12 +31,25 @@ public final class IOProperties {
        デフォルトの入出力プロパティを生成します。
     */
     public IOProperties() {
+	verbose = false;
 	outputDir = new File(".");
 	sourceFileCharset = Charset.defaultCharset();
 	gcovFileCharset = Charset.defaultCharset();
     }
 
     /**
+       メッセージ出力を冗長にするかどうか設定します。
+
+       @param b メッセージ出力を冗長にする場合はtrueは、そうでなければ
+       false
+    */
+    public void setVerbose(final boolean b) {
+	verbose = b;
+    }
+
+    /**
+       ファイルを出力するディレクトリを設定します。
+
        @param dir ファイルを出力するディレクトリ
     */
     public void setOutputDir(final File dir) {
@@ -41,6 +57,8 @@ public final class IOProperties {
     }
 
     /**
+       ソースファイルの文字集合を設定します。
+
        @param cs ソースファイルの文字集合
     */
     public void setSourceFileCharset(final Charset cs) {
@@ -48,10 +66,22 @@ public final class IOProperties {
     }
 
     /**
+       gcovファイルの文字集合を設定します。
+
        @param cs gcovファイルの文字集合
     */
     public void setGcovFileCharset(final Charset cs) {
 	gcovFileCharset = cs;
+    }
+
+    /**
+       メッセージ出力を冗長にするかどうか取得します。
+
+       @return メッセージ出力を冗長にする場合はtrueは、そうでなければ
+       false
+    */
+    public boolean isVerbose() {
+	return verbose;
     }
 
     /**
@@ -60,7 +90,7 @@ public final class IOProperties {
        @param path 出力ディレクトリを基点とした相対パス
        @return 出力ファイル
     */
-    private File createOuputFile(final String path) {
+    public File createOutputFile(final String path) {
 	return new File(outputDir, path);
     }
 
@@ -80,7 +110,7 @@ public final class IOProperties {
     */
     public Writer createGcovWriter(final String path)
 	throws FileNotFoundException {
-	File file = createOuputFile(path);
+	File file = createOutputFile(path);
 	Writer out = new OutputStreamWriter(new FileOutputStream(file),
 					    gcovFileCharset);
 	return out;

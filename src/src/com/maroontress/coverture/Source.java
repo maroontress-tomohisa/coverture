@@ -205,7 +205,9 @@ public final class Source {
 	try {
 	    out = new PrintWriter(prop.createGcovWriter(path));
 	} catch (FileNotFoundException e) {
-	    System.err.printf("%s: can't open: %s\n", path, e.getMessage());
+	    File gcov = prop.createOutputFile(path);
+	    System.err.printf("%s: can't open: %s\n",
+			      gcov.getPath(), e.getMessage());
 	    return;
 	}
 	try {
@@ -219,6 +221,10 @@ public final class Source {
 	    outputLines(out, origin, prop);
 	} finally {
 	    out.close();
+	}
+	if (prop.isVerbose()) {
+	    File gcov = prop.createOutputFile(path);
+	    System.err.printf("%s: created.\n", gcov.getPath());
 	}
     }
 }

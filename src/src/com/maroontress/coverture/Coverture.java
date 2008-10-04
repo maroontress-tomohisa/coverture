@@ -134,6 +134,12 @@ public final class Coverture {
 	}, "NUM", "Specify the number of parser threads:\n"
 		+ helpIndent + "NUM > 0; 4 is the default.");
 
+	opt.add("verbose", new OptionListener() {
+	    public void run(final String name, final String arg) {
+		ioProperties.setVerbose(true);
+	    }
+	}, "Be extra verbose.");
+
 	try {
 	    files = opt.parse(av);
 	} catch (OptionsParsingException e) {
