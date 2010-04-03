@@ -1,4 +1,4 @@
-package com.maroontress.coverture;
+package com.maroontress.cui;
 
 /**
    コマンドラインオプションのパースに関する例外です。

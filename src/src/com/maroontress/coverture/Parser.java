@@ -8,6 +8,9 @@ import java.nio.ByteBuffer;
 */
 public final class Parser {
 
+    /** INT32のバイトサイズです。 */
+    public static final int SIZE_INT32 = 4;
+
     /**
        コンストラクタです。
     */
@@ -33,7 +36,7 @@ public final class Parser {
 	if (length == 0) {
 	    return null;
 	}
-	byte[] bytes = new byte[length * 4];
+	byte[] bytes = new byte[length * SIZE_INT32];
 	bb.get(bytes);
 
 	int k;

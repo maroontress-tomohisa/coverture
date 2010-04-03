@@ -1,5 +1,6 @@
 package com.maroontress.coverture.gcno;
 
+import com.maroontress.coverture.Parser;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -28,7 +29,7 @@ public final class LinesRecord {
     */
     public LinesRecord(final ByteBuffer bb) throws IOException {
 	int length = bb.getInt();
-	int next = bb.position() + 4 * length;
+	int next = bb.position() + Parser.SIZE_INT32 * length;
 	blockIndex = bb.getInt();
 	list = new ArrayList<LineRecord>();
 

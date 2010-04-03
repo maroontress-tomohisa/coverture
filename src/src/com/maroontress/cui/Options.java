@@ -1,16 +1,19 @@
-package com.maroontress.coverture;
+package com.maroontress.cui;
 
-import java.util.Set;
-import java.util.Map;
-import java.util.HashSet;
-import java.util.HashMap;
-import java.util.TreeMap;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 /**
    コマンドラインオプションの定義です。
 */
 public final class Options {
+    /** ヘルプメッセージのインデント幅の最小値です。 */
+    private static final int MIN_INDENT_WIDTH = 4;
 
     /** 引数なしのオプションのセットです。 */
     private Set<String> options;
@@ -109,40 +112,87 @@ public final class Options {
     }
 
     /**
+       文字列がオプションかどうかを取得します。
+
+       @param s 文字列
+       @return sがオプションの場合はtrue
+    */
+    private boolean isOption(final String s) {
+	return s.startsWith("--");
+    }
+
+    /**
+       オプションをパースします。
+
+       @param s オプション
+       @throws OptionsParsingException オプションのパースに失敗したと
+       きにスローします。
+    */
+    private void parseOption(final String s) throws OptionsParsingException {
+	String argName;
+	String argValue;
+	Set<String> set;
+	int n = s.indexOf('=');
+	if (n < 0) {
+	    argName = s.substring(2);
+	    argValue = null;
+	    set = options;
+	} else {
+	    argName = s.substring(2, n);
+	    argValue = s.substring(n + 1);
+	    set = argOptions;
+	}
+	if (!set.contains(argName)) {
+	    throw new OptionsParsingException("invalid option: " + s);
+	}
+	OptionListener listener = listenerMap.get(argName);
+	if (listener != null) {
+	    listener.run(argName, argValue);
+	}
+	valueMap.put(argName, argValue);
+    }
+
+    /**
        コマンドラインの引数をパースします。
+
+       --で始まる引数をオプションとして解釈します。それ以外の引数が出
+       現した段階でパースを終了します。
+
+       @param av コマンドラインの引数の配列
+       @return コマンドラインの引数のうち、最初に出現した非オプション
+       の引数から最後の引数までの配列
+       @throws OptionsParsingException 不正なオプションの指定
+    */
+    public String[] parseFore(final String[] av)
+	throws OptionsParsingException {
+	String s;
+	int k;
+
+	for (k = 0; k < av.length && isOption(s = av[k]); ++k) {
+	    parseOption(s);
+	}
+	return Arrays.copyOfRange(av, k, av.length);
+    }
+
+    /**
+       コマンドラインの引数をパースします。
+
+       --で始まる引数をオプションとして解釈します。それ以外の引数はオ
+       プションとして解釈せず、スキップします。
 
        @param av コマンドラインの引数の配列
        @return オプションではない引数の配列
        @throws OptionsParsingException 不正なオプションの指定
     */
-    public String[] parse(final String av[]) throws OptionsParsingException {
+    public String[] parse(final String[] av) throws OptionsParsingException {
 	ArrayList<String> args = new ArrayList<String>();
+
 	for (String s : av) {
-	    if (!s.startsWith("--")) {
+	    if (!isOption(s)) {
 		args.add(s);
 		continue;
 	    }
-	    String argName;
-	    String argValue;
-	    Set<String> set;
-	    int n = s.indexOf('=');
-	    if (n < 0) {
-		argName = s.substring(2);
-		argValue = null;
-		set = options;
-	    } else {
-		argName = s.substring(2, n);
-		argValue = s.substring(n + 1);
-		set = argOptions;
-	    }
-	    if (!set.contains(argName)) {
-		throw new OptionsParsingException("invalid option: " + s);
-	    }
-	    OptionListener listener = listenerMap.get(argName);
-	    if (listener != null) {
-		listener.run(argName, argValue);
-	    }
-	    valueMap.put(argName, argValue);
+	    parseOption(s);
 	}
 	return args.toArray(new String[0]);
     }
@@ -170,5 +220,27 @@ public final class Options {
     */
     public boolean specified(final String name) {
 	return valueMap.containsKey(name);
+    }
+
+    /**
+       オプションの説明を取得します。
+
+       @param indentWidth オプションの説明のインデント幅
+       @return 説明
+    */
+    public String getHelpMessage(final int indentWidth) {
+	int width = Math.max(MIN_INDENT_WIDTH, indentWidth);
+	String helpIndent = "\n";
+	for (int k = 0; k < width; ++k) {
+	    helpIndent += " ";
+	}
+	Set<Map.Entry<String, String>> set = helpMap.entrySet();
+	String format = "--%-" + (width - MIN_INDENT_WIDTH) + "s  %s\n";
+	String m = "";
+	for (Map.Entry<String, String> e : set) {
+	    String desc = e.getValue().replace("\n", helpIndent);
+	    m += String.format(format, e.getKey(), desc);
+	}
+	return m;
     }
 }

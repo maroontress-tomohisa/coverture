@@ -7,12 +7,9 @@ import com.maroontress.coverture.gcno.ArcsRecord;
 import com.maroontress.coverture.gcno.FunctionGraphRecord;
 import com.maroontress.coverture.gcno.LineRecord;
 import com.maroontress.coverture.gcno.LinesRecord;
-import java.io.IOException;
 import java.io.PrintWriter;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedList;
 
 /**
    関数グラフです。
@@ -161,6 +158,7 @@ public final class FunctionGraph {
        ARCSレコードからアークを生成して、関数グラフに追加します。
 
        @param arcsRecord ARCSレコード
+       @throws CorruptedFileException ファイルの構造が壊れていることを検出
     */
     private void addArcsRecord(final ArcsRecord arcsRecord)
 	throws CorruptedFileException {
@@ -206,6 +204,7 @@ public final class FunctionGraph {
        します。
 
        @param linesRecord LINESレコード
+       @throws CorruptedFileException ファイルの構造が壊れていることを検出
     */
     private void addLinesRecord(final LinesRecord linesRecord)
 	throws CorruptedFileException {
@@ -232,25 +231,12 @@ public final class FunctionGraph {
        @throws CorruptedFileException ファイルの構造が壊れていることを検出
     */
     private void solveFlowGraph() throws CorruptedFileException {
-	LinkedList<Block> invalidBlocks = new LinkedList<Block>();
+	Solver s = new Solver();
 	for (Block e : blocks) {
 	    e.sortOutArcs();
-	    invalidBlocks.add(e);
+	    s.addInvalid(e);
 	}
-
-	LinkedList<Block> validBlocks = new LinkedList<Block>();
-	Block e;
-	while ((e = invalidBlocks.poll()) != null) {
-	    e.validate(validBlocks);
-	}
-	while ((e = validBlocks.poll()) != null) {
-	    e.validateSides(validBlocks);
-	}
-	for (Block b : blocks) {
-	    if (!b.getCountValid()) {
-		throw new CorruptedFileException("graph is unsolvable");
-	    }
-	}
+	s.solve();
     }
 
     /**

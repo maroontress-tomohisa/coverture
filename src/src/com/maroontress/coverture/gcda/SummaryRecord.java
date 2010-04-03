@@ -1,5 +1,6 @@
 package com.maroontress.coverture.gcda;
 
+import com.maroontress.coverture.Parser;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
@@ -40,7 +41,7 @@ public final class SummaryRecord {
     */
     public SummaryRecord(final ByteBuffer bb) throws IOException {
 	int length = bb.getInt();
-	int next = bb.position() + 4 * length;
+	int next = bb.position() + Parser.SIZE_INT32 * length;
 
 	checksum = bb.getInt();
 	num = bb.getInt();

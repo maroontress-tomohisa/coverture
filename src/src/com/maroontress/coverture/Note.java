@@ -10,10 +10,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
-import java.nio.charset.Charset;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.TreeMap;
@@ -187,6 +184,7 @@ public final class Note {
 
        @param path gcnoファイルのパス
        @return ノート
+       @throws IOException 入出力エラー
     */
     public static Note parse(final String path) throws IOException {
 	if (!path.endsWith(".gcno")) {

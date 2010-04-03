@@ -5,7 +5,7 @@ import java.util.ArrayList;
 /**
    行エントリは行単位で表された、ひとつのソースファイルの部分集合です。
 */
-public class LineEntry {
+public final class LineEntry {
 
     /** ソースファイルの名前 */
     private String fileName;

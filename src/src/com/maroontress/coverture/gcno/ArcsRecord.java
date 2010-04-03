@@ -1,5 +1,6 @@
 package com.maroontress.coverture.gcno;
 
+import com.maroontress.coverture.Parser;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
@@ -27,7 +28,7 @@ public final class ArcsRecord {
     */
     public ArcsRecord(final ByteBuffer bb) throws IOException {
 	int length = bb.getInt();
-	int next = bb.position() + 4 * length;
+	int next = bb.position() + Parser.SIZE_INT32 * length;
 	startIndex = bb.getInt();
 	int num = (length - 1) / 2;
 	list = new ArcRecord[num];

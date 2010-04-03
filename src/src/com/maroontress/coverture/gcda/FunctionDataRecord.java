@@ -1,13 +1,10 @@
 package com.maroontress.coverture.gcda;
 
-import com.maroontress.coverture.CorruptedFileException;
-import com.maroontress.coverture.UnexpectedTagException;
+import com.maroontress.coverture.Parser;
 import com.maroontress.coverture.Tag;
+import com.maroontress.coverture.UnexpectedTagException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.util.ArrayList;
-import java.util.Arrays;
 
 /**
    関数データレコードです。
@@ -40,7 +37,7 @@ public final class FunctionDataRecord {
     public FunctionDataRecord(final ByteBuffer bb)
 	throws IOException, UnexpectedTagException {
 	int length = bb.getInt();
-	int next = bb.position() + 4 * length;
+	int next = bb.position() + Parser.SIZE_INT32 * length;
 
 	id = bb.getInt();
 	checksum = bb.getInt();
@@ -52,7 +49,7 @@ public final class FunctionDataRecord {
 	    throw new UnexpectedTagException(m);
 	}
 	length = bb.getInt();
-	next = bb.position() + 4 * length;
+	next = bb.position() + Parser.SIZE_INT32 * length;
 
 	arcCounts = new long[length / 2];
 	for (int k = 0; k < arcCounts.length; ++k) {

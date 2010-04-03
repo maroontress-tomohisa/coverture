@@ -6,7 +6,7 @@ import java.util.ArrayList;
    行エントリのリストです。ひとつの基本ブロックに対応するソースコード
    の集合です。
 */
-public class LineEntryList {
+public final class LineEntryList {
 
     /** 行エントリのリストです。 */
     private ArrayList<LineEntry> list;

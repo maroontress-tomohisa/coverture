@@ -1,6 +1,6 @@
 package com.maroontress.coverture.gcno;
 
-import com.maroontress.coverture.CorruptedFileException;
+import com.maroontress.coverture.Parser;
 import com.maroontress.coverture.Tag;
 import com.maroontress.coverture.UnexpectedTagException;
 import java.io.IOException;
@@ -30,7 +30,7 @@ public final class BasicBlockRecord {
 	throws IOException, UnexpectedTagException {
 	int tag = bb.getInt();
 	int length = bb.getInt();
-	int next = bb.position() + 4 * length;
+	int next = bb.position() + Parser.SIZE_INT32 * length;
 
 	if (tag != Tag.BLOCK) {
 	    String m = String.format("unexpected tag: 0x%x", tag);

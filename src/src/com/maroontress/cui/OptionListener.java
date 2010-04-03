@@ -1,4 +1,4 @@
-package com.maroontress.coverture;
+package com.maroontress.cui;
 
 /**
    コマンドラインオプションを検出したときに呼び出すリスナです。

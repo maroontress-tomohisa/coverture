@@ -1,9 +1,8 @@
 <?xml version="1.0"?>
-<project default="all">
-
+<project default="all" xmlns:cs="antlib:com.puppycrawl.tools.checkstyle">
   <property name="prefix" location="/usr/local"/>
-  <property name="debug" location="false"/>
-  <property name="javadoc_linkurl" value="http://java.sun.com/j2se/1.5.0/ja/docs/ja/api/"/>
+  <property name="debug" value="true"/>
+  <property name="javadoc_linkurl" value="http://java.sun.com/javase/ja/6/docs/ja/api/"/>
   <property name="javac_options" value="-encoding EUC-JP -Xlint:unchecked -Xlint:deprecation"/>
 
   <target name="all" depends="coverture.jar"/>
@@ -65,4 +64,11 @@
     <delete dir="depcache"/>
   </target>
 
+  <target name="checkstyle">
+    <cs:checkstyle config="sun_checks.xml">
+      <fileset dir="src" includes="**/*.java"/>
+      <classpath path="classes"/>
+      <formatter type="plain"/>
+    </cs:checkstyle>
+  </target>
 </project>

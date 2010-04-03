@@ -13,6 +13,8 @@ import java.util.TreeSet;
    ガバレッジするソースファイルを管理します。
 */
 public final class Source {
+    /** パーセントに変換するための係数です。 */
+    private static final double PERCENT = 100;
 
     /** ガバレッジ対象のソースファイルのパスです。 */
     private String sourceFile;
@@ -120,7 +122,7 @@ public final class Source {
 	if (m == 0) {
 	    return 0;
 	}
-	return (int) (100.0 * n / m + 0.5);
+	return (int) Math.round(PERCENT * n / m);
     }
 
     /**

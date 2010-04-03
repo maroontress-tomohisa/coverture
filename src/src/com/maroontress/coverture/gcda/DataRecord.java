@@ -17,6 +17,9 @@ import java.util.Arrays;
 */
 public final class DataRecord {
 
+    /** マジックナンバーのバイト長です。 */
+    private static final int MAGIC_LENGTH = 4;
+
     /** ビッグエンディアンのマジックナンバーです。 */
     private static final byte[] MAGIC_BE = {'g', 'c', 'd', 'a'};
 
@@ -85,8 +88,8 @@ public final class DataRecord {
        @throws CorruptedFileException ファイルの構造が壊れていることを検出
     */
     public DataRecord(final ByteBuffer bb)
-	throws IOException, UnexpectedTagException, CorruptedFileException {
-	byte[] magic = new byte[4];
+	throws IOException, CorruptedFileException {
+	byte[] magic = new byte[MAGIC_LENGTH];
 	bb.get(magic);
 	if (Arrays.equals(magic, MAGIC_BE)) {
 	    bb.order(ByteOrder.BIG_ENDIAN);

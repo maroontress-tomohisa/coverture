@@ -1,7 +1,6 @@
 package com.maroontress.coverture.gcno;
 
 import com.maroontress.coverture.CorruptedFileException;
-import com.maroontress.coverture.UnexpectedTagException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -14,6 +13,9 @@ import java.util.Arrays;
    note: int32:magic int32:version int32:stamp function-graph*
 */
 public final class NoteRecord {
+
+    /** マジックナンバーのバイト長です。 */
+    private static final int MAGIC_LENGTH = 4;
 
     /** ビッグエンディアンのマジックナンバーです。 */
     private static final byte[] MAGIC_BE = {'g', 'c', 'n', 'o'};
@@ -69,7 +71,7 @@ public final class NoteRecord {
     */
     public NoteRecord(final ByteBuffer bb)
 	throws IOException, CorruptedFileException {
-	byte[] magic = new byte[4];
+	byte[] magic = new byte[MAGIC_LENGTH];
 	bb.get(magic);
 	if (Arrays.equals(magic, MAGIC_BE)) {
 	    bb.order(ByteOrder.BIG_ENDIAN);

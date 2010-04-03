@@ -10,6 +10,9 @@ import java.util.HashMap;
 */
 public final class SourceList {
 
+    /** パーセントに変換するための係数です。 */
+    private static final double PERCENT = 100;
+
     /** ソースファイルのパスとソースのマップです。 */
     private HashMap<String, Source> map;
 
@@ -72,7 +75,7 @@ public final class SourceList {
 	    if (executableLines > 0) {
 		out.printf(" executedLines='%d' rate='%.2f'",
 			   executedLines,
-			   100.0 * executedLines / executableLines);
+			   PERCENT * executedLines / executableLines);
 	    }
 	    out.printf("/>\n");
 	}

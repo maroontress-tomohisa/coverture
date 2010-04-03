@@ -4,13 +4,15 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
-import java.util.Queue;
 import java.util.TreeMap;
 
 /**
    関数グラフのノードとなる基本ブロックです。
 */
 public final class Block {
+
+    /** パーセントに変換するための係数です。 */
+    private static final double PERCENT = 100;
 
     /** ブロックの識別子です。 */
     private int id;
@@ -68,7 +70,7 @@ public final class Block {
        @param sourceList ソースリスト
     */
     public void addLineCounts(final SourceList sourceList) {
-	assert(count >= 0);
+	assert (count >= 0);
 	if (lines == null) {
 	    return;
 	}
@@ -106,13 +108,13 @@ public final class Block {
     }
 
     /**
-       実行割合を取得します。
+       実行割合（パーセント）を取得します。
 
        @param c 実行回数
        @return 実行割合
     */
     private double getRate(final long c) {
-	return (count == 0) ? 0 : 100.0 * c / count;
+	return (count == 0) ? 0 : PERCENT * c / count;
     }
 
     /**
@@ -373,17 +375,17 @@ public final class Block {
 
        「入るアーク」の実行回数がすべて求まっているか、「出るアーク」
        の実行回数がすべて求まっている場合、それらの総和をブロックの実
-       行回数として計算し、ブロックをキューに追加します。
+       行回数として計算し、ブロックをソルバに追加します。
 
        「入るアーク」と「出るアーク」のどちらも実行回数が求まっていな
        い場合は何もしません。
 
-       @param q 実行回数が求まったときにブロックを追加するキュー
+       @param s フローグラフソルバ
     */
-    public void validate(final Queue<Block> q) {
+    public void validate(final Solver s) {
 	if (validateCount(inArcs, unsolvedInArcs)
 	    || validateCount(outArcs, unsolvedOutArcs)) {
-	    q.add(this);
+	    s.addValid(this);
 	}
     }
 
@@ -395,24 +397,22 @@ public final class Block {
        なら求めます。
 
        ブロックの実行回数が不明な場合は、ブロックの実行回数を可能なら
-       求めます。求まった場合はブロックをキューに追加します。
+       求めます。その結果と共にソルバにブロックを追加します。
 
-       @param q 実行回数が判明したときにブロックを追加するキュー
+       @param s フローグラフソルバ
        @param arc 実行回数が判明したアーク
     */
-    private void validateInSideBlock(final Queue<Block> q, final Arc arc) {
+    private void validateInSideBlock(final Solver s, final Arc arc) {
 	unsolvedOutArcs.remove(arc);
 	solvedOutArcs.add(arc);
 	if (inArcs.size() > 0 && unsolvedInArcs.size() == 0) {
 	    // 既に実行回数が判明していた
 	    if (unsolvedOutArcs.size() == 1) {
-		validateOutSide(q);
+		validateOutSide(s);
 	    }
 	} else {
 	    // まだ実行回数が不明
-	    if (validateCount(outArcs, unsolvedOutArcs)) {
-		q.add(this);
-	    }
+	    s.add(this, validateCount(outArcs, unsolvedOutArcs));
 	}
     }
 
@@ -424,14 +424,14 @@ public final class Block {
        実行回数が判明したアークの開始ブロックについて、再帰的に実行回
        数を求めます。
 
-       @param q 実行回数が判明したときにブロックを追加するキュー
+       @param s フローグラフソルバ
     */
-    private void validateInSide(final Queue<Block> q) {
+    private void validateInSide(final Solver s) {
 	Arc arc = unsolvedInArcs.remove();
 	arc.setCount(count - sumCount(solvedInArcs));
 	solvedInArcs.add(arc);
 	// arcが出るブロックについての処理
-	arc.getStart().validateInSideBlock(q, arc);
+	arc.getStart().validateInSideBlock(s, arc);
     }
 
     /**
@@ -442,24 +442,22 @@ public final class Block {
        求めます。
 
        ブロックの実行回数が不明な場合は、ブロックの実行回数を可能なら
-       求めます。求まった場合はブロックをキューに追加します。
+       求めます。その結果と共にソルバにブロックを追加します。
 
-       @param q 実行回数が判明したときにブロックを追加するキュー
+       @param s フローグラフソルバ
        @param arc 実行回数が判明したアーク
     */
-    private void validateOutSideBlock(final Queue<Block> q, final Arc arc) {
+    private void validateOutSideBlock(final Solver s, final Arc arc) {
 	unsolvedInArcs.remove(arc);
 	solvedInArcs.add(arc);
 	if (outArcs.size() > 0 && unsolvedOutArcs.size() == 0) {
 	    // 既に実行回数が判明していた
 	    if (unsolvedInArcs.size() == 1) {
-		validateInSide(q);
+		validateInSide(s);
 	    }
 	} else {
 	    // まだ実行回数が不明
-	    if (validateCount(inArcs, unsolvedInArcs)) {
-		q.add(this);
-	    }
+	    s.add(this, validateCount(inArcs, unsolvedInArcs));
 	}
     }
 
@@ -471,14 +469,14 @@ public final class Block {
        実行回数が判明したアークの終了ブロックについて、再帰的に実行回
        数を求めます。
 
-       @param q 実行回数が判明したときにブロックを追加するキュー
+       @param s フローグラフソルバ
     */
-    private void validateOutSide(final Queue<Block> q) {
+    private void validateOutSide(final Solver s) {
 	Arc arc = unsolvedOutArcs.remove();
 	arc.setCount(count - sumCount(solvedOutArcs));
 	solvedOutArcs.add(arc);
 	// arcが入るブロックについての処理
-	arc.getEnd().validateOutSideBlock(q, arc);
+	arc.getEnd().validateOutSideBlock(s, arc);
     }
 
     /**
@@ -487,14 +485,14 @@ public final class Block {
 
        ブロックは既に実行回数が判明している必要があります。
 
-       @param q 実行回数が判明したときにブロックを追加するキュー
+       @param s フローグラフソルバ
     */
-    public void validateSides(final Queue<Block> q) {
+    public void validateSides(final Solver s) {
 	if (unsolvedInArcs.size() == 1) {
-	    validateInSide(q);
+	    validateInSide(s);
 	}
 	if (unsolvedOutArcs.size() == 1) {
-	    validateOutSide(q);
+	    validateOutSide(s);
 	}
     }
 }

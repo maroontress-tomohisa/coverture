@@ -1,16 +1,17 @@
 package com.maroontress.coverture;
 
+import com.maroontress.cui.OptionListener;
+import com.maroontress.cui.Options;
+import com.maroontress.cui.OptionsParsingException;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
-import java.util.Map;
-import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
@@ -24,14 +25,11 @@ import java.util.concurrent.Future;
 */
 public final class Coverture {
 
-    /** バッファのサイズです。 */
-    private static final int BUFFER_SIZE = 4096;
+    /** ヘルプメッセージのインデント幅です。 */
+    private static final int INDENT_WIDTH = 32;
 
     /** デフォルトのスレッドの個数。 */
     private static final int DEFAULT_THREADS = 4;
-
-    /** ヘルプメッセージのインデントの深さです。 */
-    private static final int HELP_INDENT_COUNT = 36;
 
     /** gcovファイルを出力するかどうかのフラグです。 */
     private boolean outputGcov;
@@ -57,66 +55,65 @@ public final class Coverture {
     /** gcnoファイルをパースするスレッドの個数です。 */
     private int threads;
 
+    /** コマンドラインオプションの定義です。 */
+    private Options options;
+
     /**
        起動クラスのインスタンスを生成します。
 
        @param av コマンドラインオプションの配列
     */
     private Coverture(final String[] av) {
-	final Options opt = new Options();
-	String helpIndent = "";
-	for (int k = 0; k < HELP_INDENT_COUNT; ++k) {
-	    helpIndent += " ";
-	}
 	threads = DEFAULT_THREADS;
 	ioProperties = new IOProperties();
 
-	opt.add("help", new OptionListener() {
+	options = new Options();
+	options.add("help", new OptionListener() {
 	    public void run(final String name, final String arg) {
-		usage(opt);
+		usage();
 	    }
 	}, "Show this message and exit.");
 
-	opt.add("version", new OptionListener() {
+	options.add("version", new OptionListener() {
 	    public void run(final String name, final String arg) {
 		version();
 	    }
 	}, "Show version and exit.");
 
-	opt.add("output-dir", new OptionListener() {
+	options.add("output-dir", new OptionListener() {
 	    public void run(final String name, final String arg) {
 		ioProperties.setOutputDir(new File(arg));
 	    }
 	}, "DIR", "Specify where to place generated files.");
 
-	opt.add("input-file", new OptionListener() {
+	options.add("input-file", new OptionListener() {
 	    public void run(final String name, final String arg) {
 		inputFile = arg;
 	    }
 	}, "FILE", "Read the list of files from FILE:\n"
-		+ helpIndent + "FILE can be - for standard input.");
+		    + "FILE can be - for standard input.");
 
-	opt.add("source-file-charset", new OptionListener() {
+	options.add("source-file-charset", new OptionListener() {
 	    public void run(final String name, final String arg)
 		throws OptionsParsingException {
 		ioProperties.setSourceFileCharset(getCharset(arg));
 	    }
 	}, "CHARSET", "Specify the charset of source files.");
 
-	opt.add("gcov", new OptionListener() {
+	options.add("gcov", new OptionListener() {
 	    public void run(final String name, final String arg) {
 		outputGcov = true;
 	    }
 	}, "Output .gcov files compatible with gcov.");
 
-	opt.add("gcov-file-charset", new OptionListener() {
+	options.add("gcov-file-charset", new OptionListener() {
 	    public void run(final String name, final String arg)
 		throws OptionsParsingException {
 		ioProperties.setGcovFileCharset(getCharset(arg));
 	    }
 	}, "CHARSET", "Specify the charset of .gcov files.");
 
-	opt.add("threads", new OptionListener() {
+	options.add("threads", new OptionListener() {
 	    public void run(final String name, final String arg)
 		throws OptionsParsingException {
 		String m = "invalid value: " + arg;
@@ -132,22 +129,22 @@ public final class Coverture {
 		threads = num;
 	    }
 	}, "NUM", "Specify the number of parser threads:\n"
-		+ helpIndent + "NUM > 0; 4 is the default.");
+		    + "NUM > 0; 4 is the default.");
 
-	opt.add("verbose", new OptionListener() {
+	options.add("verbose", new OptionListener() {
 	    public void run(final String name, final String arg) {
 		ioProperties.setVerbose(true);
 	    }
 	}, "Be extra verbose.");
 
 	try {
-	    files = opt.parse(av);
+	    files = options.parse(av);
 	} catch (OptionsParsingException e) {
 	    System.err.println(e.getMessage());
-	    usage(opt);
+	    usage();
 	}
 	if (files.length == 0 && inputFile == null) {
-	    usage(opt);
+	    usage();
 	}
 	service = new ExecutorCompletionService<Note>(
 	    Executors.newFixedThreadPool(threads));
@@ -163,7 +160,7 @@ public final class Coverture {
        @throws OptionsParsingException 指定の文字集合名を使用できない
     */
     private Charset getCharset(final String csn)
-	throws OptionsParsingException{
+	throws OptionsParsingException {
 	if (csn == null) {
 	    return Charset.defaultCharset();
 	}
@@ -263,33 +260,37 @@ public final class Coverture {
     }
 
     /**
-       使用方法を表示して終了します。
+       使用方法を表示します。
 
-       @param opt コマンドラインオプションの定義
+       @param out 出力ストリーム
     */
-    private static void usage(final Options opt) {
-        System.err.print(""
-+ "Usage: java com.maroontress.coverture.Coverture [options] [file...]\n"
-+ "Options are:\n");
-	Set<Map.Entry<String, String>> set = opt.getHelpMap().entrySet();
-	for (Map.Entry<String, String> e : set) {
-	    int w = HELP_INDENT_COUNT - 6;
-	    System.err.printf("  --%-" + w + "s  %s\n",
-			      e.getKey(), e.getValue());
-	}
+    private void printUsage(final PrintStream out) {
+        out.printf("Usage: coverture [Options] [FILE...]%n"
+                   + "Options are:%n");
+        String[] help = options.getHelpMessage(INDENT_WIDTH).split("\n");
+        for (String s : help) {
+            out.printf("  %s%n", s);
+        }
+    }
+
+    /**
+       使用方法を表示して終了します。
+    */
+    private void usage() {
+        printUsage(System.err);
         System.exit(1);
     }
 
     /**
        バージョンを出力して終了します。
     */
-    private static void version() {
-        InputStream in = Coverture.class.getResourceAsStream("version");
-        byte[] data = new byte[BUFFER_SIZE];
-        int size;
+    private void version() {
+	BufferedReader in = new BufferedReader(
+	    new InputStreamReader(getClass().getResourceAsStream("version")));
         try {
-            while ((size = in.read(data)) > 0) {
-                System.out.write(data, 0, size);
+	    String s;
+            while ((s = in.readLine()) != null) {
+                System.out.println(s);
             }
             in.close();
         } catch (Exception e) {
@@ -306,5 +307,6 @@ public final class Coverture {
     public static void main(final String[] av) {
 	Coverture cov = new Coverture(av);
 	cov.run();
+        System.exit(0);
     }
 }
