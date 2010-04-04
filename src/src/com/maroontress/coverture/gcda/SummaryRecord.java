@@ -46,9 +46,9 @@ public final class SummaryRecord {
 	checksum = bb.getInt();
 	num = bb.getInt();
 	runs = bb.getInt();
-	sumAll = bb.getLong();
-	runMax = bb.getLong();
-	sumMax = bb.getLong();
+	sumAll = Parser.getInt64(bb);
+	runMax = Parser.getInt64(bb);
+	sumMax = Parser.getInt64(bb);
 
 	bb.position(next);
     }

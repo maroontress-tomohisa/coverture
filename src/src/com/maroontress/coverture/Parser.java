@@ -18,6 +18,27 @@ public final class Parser {
     }
 
     /**
+       バイトバッファから64ビット値を入力し、その値を返します。バイト
+       バッファの位置は8バイト進みます。
+
+       gcovの仕様により64ビット値は、下位32ビット、上位32ビットの順に
+       並んでいます。
+
+       @param bb バイトバッファ
+       @return 64ビット値
+       @throws IOException 入出力エラー
+    */
+    public static long getInt64(final ByteBuffer bb) throws IOException {
+	long low = bb.getInt();
+	long high = bb.getInt();
+	if (low < 0) {
+	    low += (1L << Integer.SIZE);
+	}
+	high <<= Integer.SIZE;
+	return high | low;
+    }
+
+    /**
        バイトバッファから文字列を入力し、そのインスタンスを返します。
        インスタンスはStirng.intern()が返す文字列です。文字列の長さが0
        のときはnullを返します。ヌルターミネートのための0、およびパディ

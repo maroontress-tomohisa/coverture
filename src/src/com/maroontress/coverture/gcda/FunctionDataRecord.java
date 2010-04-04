@@ -53,7 +53,7 @@ public final class FunctionDataRecord {
 
 	arcCounts = new long[length / 2];
 	for (int k = 0; k < arcCounts.length; ++k) {
-	    arcCounts[k] = bb.getLong();
+	    arcCounts[k] = Parser.getInt64(bb);
 	}
 	bb.position(next);
     }
