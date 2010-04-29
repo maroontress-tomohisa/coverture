@@ -194,7 +194,7 @@ public final class Options {
 	    }
 	    parseOption(s);
 	}
-	return args.toArray(new String[0]);
+	return args.toArray(new String[args.size()]);
     }
 
     /**

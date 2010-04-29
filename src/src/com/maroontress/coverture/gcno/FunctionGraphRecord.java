@@ -111,7 +111,7 @@ public final class FunctionGraphRecord {
        @return ARCSレコードの配列
     */
     public ArcsRecord[] getArcs() {
-	return arcs.toArray(new ArcsRecord[0]);
+	return arcs.toArray(new ArcsRecord[arcs.size()]);
     }
 
     /**
@@ -120,6 +120,6 @@ public final class FunctionGraphRecord {
        @return LINESレコードの配列
     */
     public LinesRecord[] getLines() {
-	return lines.toArray(new LinesRecord[0]);
+	return lines.toArray(new LinesRecord[lines.size()]);
     }
 }

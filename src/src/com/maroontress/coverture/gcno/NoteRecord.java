@@ -112,6 +112,6 @@ public final class NoteRecord {
        @return 関数グラフレコードの配列
     */
     public FunctionGraphRecord[] getList() {
-	return list.toArray(new FunctionGraphRecord[0]);
+	return list.toArray(new FunctionGraphRecord[list.size()]);
     }
 }

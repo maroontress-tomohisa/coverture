@@ -55,6 +55,6 @@ public final class LinesRecord {
        @return LINEレコードの配列
     */
     public LineRecord[] getList() {
-	return list.toArray(new LineRecord[0]);
+	return list.toArray(new LineRecord[list.size()]);
     }
 }

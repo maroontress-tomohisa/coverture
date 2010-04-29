@@ -151,7 +151,7 @@ public final class DataRecord {
        @return 関数データレコードの配列
     */
     public FunctionDataRecord[] getList() {
-	return list.toArray(new FunctionDataRecord[0]);
+	return list.toArray(new FunctionDataRecord[list.size()]);
     }
 
     /**
@@ -169,6 +169,7 @@ public final class DataRecord {
        @return プログラムのサマリレコードの配列
     */
     public SummaryRecord[] getProgramSummaries() {
-	return programSummaries.toArray(new SummaryRecord[0]);
+	return programSummaries.toArray(
+	    new SummaryRecord[programSummaries.size()]);
     }
 }
