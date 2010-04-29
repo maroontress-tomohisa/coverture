@@ -243,11 +243,11 @@ public final class Coverture {
 		set.add(note);
 	    }
 	    PrintWriter out = new PrintWriter(System.out);
-	    out.println("<gcno>");
+	    out.print("<gcno>\n");
 	    for (Note note : set) {
 		note.printXML(out);
 	    }
-	    out.println("</gcno>");
+	    out.print("</gcno>\n");
 	    out.close();
 	} catch (ExecutionException e) {
 	    e.getCause().printStackTrace();
