@@ -213,7 +213,8 @@ public final class Coverture {
 		processFile(name);
 	    }
 	} catch (FileNotFoundException e) {
-	    System.err.printf("%s: not found: %s", inputFile, e.getMessage());
+	    System.err.printf("%s: not found: %s%n",
+			      inputFile, e.getMessage());
 	    System.exit(1);
 	}
     }

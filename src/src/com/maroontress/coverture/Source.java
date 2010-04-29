@@ -177,7 +177,7 @@ public final class Source {
 			     final IOProperties prop) throws IOException {
 	File file = new File(sourceFile);
 	if (file.lastModified() > origin.getNoteFile().lastModified()) {
-	    System.err.printf("%s: source file is newer than gcno file\n",
+	    System.err.printf("%s: source file is newer than gcno file%n",
 			      sourceFile);
 	    out.printf("%9s:%5d:Source is newer than gcno file\n", "-", 0);
 	}
@@ -208,7 +208,7 @@ public final class Source {
 	    out = new PrintWriter(prop.createGcovWriter(path));
 	} catch (FileNotFoundException e) {
 	    File gcov = prop.createOutputFile(path);
-	    System.err.printf("%s: can't open: %s\n",
+	    System.err.printf("%s: can't open: %s%n",
 			      gcov.getPath(), e.getMessage());
 	    return;
 	}
@@ -226,7 +226,7 @@ public final class Source {
 	}
 	if (prop.isVerbose()) {
 	    File gcov = prop.createOutputFile(path);
-	    System.err.printf("%s: created.\n", gcov.getPath());
+	    System.err.printf("%s: created.%n", gcov.getPath());
 	}
     }
 }
