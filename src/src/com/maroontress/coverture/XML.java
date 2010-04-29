@@ -32,17 +32,17 @@ public final class XML {
        @return エスケープした文字列
     */
     public static String escape(final String s) {
-        String t = "";
+        StringBuilder b = new StringBuilder();
         int n = s.length();
         for (int k = 0; k < n; ++k) {
             char c = s.charAt(k);
             String m = map.get(c);
             if (m != null) {
-                t += m;
+                b.append(m);
             } else {
-                t += c;
+                b.append(c);
             }
         }
-        return t;
+        return b.toString();
     }
 }
