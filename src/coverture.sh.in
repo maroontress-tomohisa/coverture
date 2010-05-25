@@ -1,3 +1,8 @@
 #!/bin/sh
 
-exec java -jar @PREFIX@/lib/coverture/coverture.jar "$@"
+o="-Xmx256m"
+if [ "${COVERTURE_JVM_OPTIONS}" != "" ] ; then
+    o="$o ${COVERTURE_JVM_OPTIONS}"
+fi
+
+exec java $o -jar @PREFIX@/lib/coverture/coverture.jar "$@"
