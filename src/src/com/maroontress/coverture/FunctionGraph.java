@@ -23,7 +23,7 @@ public final class FunctionGraph {
     private int checksum;
 
     /** 関数名です。 */
-    private String functionName;
+    private byte[] functionName;
 
     /** ソースコードのファイル名です。 */
     private String sourceFile;
@@ -91,7 +91,7 @@ public final class FunctionGraph {
 	out.printf("<functionGraph id='%d' checksum='0x%x' functionName='%s'"
 		   + " sourceFile='%s' lineNumber='%d'"
 		   + " complexity='%d' complexityWithFake='%d'",
-		   id, checksum, XML.escape(functionName),
+		   id, checksum, XML.escape(getFunctionName()),
 		   XML.escape(sourceFile), lineNumber,
 		   complexity, complexityWithFake);
 	if (solved) {
@@ -277,13 +277,13 @@ public final class FunctionGraph {
 	throws CorruptedFileException {
 	if (checksum != rec.getChecksum()) {
 	    String m = String.format("gcda file: checksum mismatch for '%s'",
-				     functionName);
+				     getFunctionName());
 	    throw new CorruptedFileException(m);
 	}
 	long[] arcCounts = rec.getArcCounts();
 	if (solvedArcs.size() != arcCounts.length) {
 	    String m = String.format("gcda file: profile mismatch for '%s'",
-				     functionName);
+				     getFunctionName());
 	    throw new CorruptedFileException(m);
 	}
 	for (int k = 0; k < arcCounts.length; ++k) {
@@ -318,7 +318,7 @@ public final class FunctionGraph {
        @return 関数名
     */
     public String getFunctionName() {
-	return functionName;
+	return Parser.createString(functionName);
     }
 
     /**

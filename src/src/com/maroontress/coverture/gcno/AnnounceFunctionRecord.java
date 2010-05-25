@@ -21,7 +21,7 @@ public final class AnnounceFunctionRecord {
     private int checksum;
 
     /** 関数名です。 */
-    private String functionName;
+    private byte[] functionName;
 
     /** ソースコードのファイル名です。 */
     private String sourceFile;
@@ -52,7 +52,7 @@ public final class AnnounceFunctionRecord {
 	}
 	id = bb.getInt();
 	checksum = bb.getInt();
-	functionName = Parser.getString(bb);
+	functionName = Parser.getBytes(bb);
 	sourceFile = Parser.getString(bb);
 	lineNumber = bb.getInt();
 	bb.position(next);
@@ -81,7 +81,7 @@ public final class AnnounceFunctionRecord {
 
        @return 関数名
     */
-    public String getFunctionName() {
+    public byte[] getFunctionName() {
 	return functionName;
     }
 
