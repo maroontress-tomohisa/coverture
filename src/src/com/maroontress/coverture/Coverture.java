@@ -12,13 +12,10 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 /**
    Covertureの起動クラスです。
@@ -34,6 +31,9 @@ public final class Coverture {
     /** gcovファイルを出力するかどうかのフラグです。 */
     private boolean outputGcov;
 
+    /** ソートして出力するかどうかのフラグです。 */
+    private boolean sortsOutput;
+
     /** gcnoファイルのリストファイルのパスです。 */
     private String inputFile;
 
@@ -43,20 +43,14 @@ public final class Coverture {
     /** コマンドラインで指定されたgcnoファイルのパスの配列です。 */
     private String[] files;
 
-    /**
-       処理するファイルの個数です。files.lengthに--input-fileで指定し
-       たファイルリストの個数を加えたものになります。
-    */
-    private int taskCount;
-
-    /** Noteインスタンスを生成する非同期タスクのキューです。 */
-    private CompletionService<Note> service;
-
     /** gcnoファイルをパースするスレッドの個数です。 */
     private int threads;
 
     /** コマンドラインオプションの定義です。 */
     private Options options;
+
+    /** Noteインスタンスを生成する非同期タスクのキューです。 */
+    private DeliveryService<Note> service;
 
     /**
        起動クラスのインスタンスを生成します。
@@ -65,6 +59,7 @@ public final class Coverture {
     */
     private Coverture(final String[] av) {
 	threads = DEFAULT_THREADS;
+	sortsOutput = true;
 	ioProperties = new IOProperties();
 
 	options = new Options();
@@ -131,6 +126,12 @@ public final class Coverture {
 	}, "NUM", "Specify the number of parser threads:\n"
 		    + "NUM > 0; 4 is the default.");
 
+	options.add("no-sort", new OptionListener() {
+	    public void run(final String name, final String arg) {
+		sortsOutput = false;
+	    }
+	}, "Disable sorting.");
+
 	options.add("verbose", new OptionListener() {
 	    public void run(final String name, final String arg) {
 		ioProperties.setVerbose(true);
@@ -146,8 +147,7 @@ public final class Coverture {
 	if (files.length == 0 && inputFile == null) {
 	    usage();
 	}
-	service = new ExecutorCompletionService<Note>(
-	    Executors.newFixedThreadPool(threads));
+	service = new DeliveryService<Note>(threads);
     }
 
     /**
@@ -177,7 +177,6 @@ public final class Coverture {
        @param name 入力するgcnoファイルのファイル名
     */
     private void processFile(final String name) {
-	++taskCount;
 	service.submit(new Callable<Note>() {
 	    public Note call() throws Exception {
 		Note note = Note.parse(name);
@@ -220,6 +219,59 @@ public final class Coverture {
     }
 
     /**
+       ヒープサイズを標準エラー出力に表示します。
+    */
+    private void verifyHeapSize() {
+	if (ioProperties.isVerbose()) {
+	    Runtime t = Runtime.getRuntime();
+	    t.gc();
+	    System.err.printf("heap: %d/%d%n", t.freeMemory(), t.maxMemory());
+	}
+    }
+
+    /**
+       ソートせずに結果を出力します。
+
+       @throws ExecutionException ワーカスレッドが例外をスロー
+    */
+    private void outputUnsorted() throws ExecutionException {
+	verifyHeapSize();
+
+	final PrintWriter out = new PrintWriter(System.out);
+	out.print("<gcno>\n");
+	service.deliver(new DeliveryListener<Note>() {
+	    public void deliver(final Note note) {
+		note.printXML(out);
+	    }
+	});
+	out.print("</gcno>\n");
+	out.close();
+    }
+
+    /**
+       ソートして結果を出力します。
+
+       @throws ExecutionException ワーカスレッドが例外をスロー
+    */
+    private void outputSorted() throws ExecutionException {
+	final Set<Note> set = new TreeSet<Note>(Note.getOriginComparator());
+	service.deliver(new DeliveryListener<Note>() {
+	    public void deliver(final Note note) {
+		set.add(note);
+	    }
+	});
+	verifyHeapSize();
+
+	PrintWriter out = new PrintWriter(System.out);
+	out.print("<gcno>\n");
+	for (Note note : set) {
+	    note.printXML(out);
+	}
+	out.print("</gcno>\n");
+	out.close();
+    }
+
+    /**
        指定されたファイルの入出力を実行します。
     */
     private void run() {
@@ -233,23 +285,11 @@ public final class Coverture {
 	    if (inputFile != null) {
 		processFileList(inputFile);
 	    }
-
-	    TreeSet<Note> set = new TreeSet<Note>(Note.getOriginComparator());
-	    for (int k = 0; k < taskCount; ++k) {
-		Future<Note> future = service.take();
-		Note note = future.get();
-		if (note == null) {
-		    continue;
-		}
-		set.add(note);
+	    if (sortsOutput) {
+		outputSorted();
+	    } else {
+		outputUnsorted();
 	    }
-	    PrintWriter out = new PrintWriter(System.out);
-	    out.print("<gcno>\n");
-	    for (Note note : set) {
-		note.printXML(out);
-	    }
-	    out.print("</gcno>\n");
-	    out.close();
 	} catch (ExecutionException e) {
 	    e.getCause().printStackTrace();
 	    System.exit(1);
