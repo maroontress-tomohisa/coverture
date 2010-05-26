@@ -27,6 +27,9 @@ public final class IOProperties {
     /** gcovファイルの文字集合です。 */
     private Charset gcovFileCharset;
 
+    /** gcovファイルを出力するかどうかのフラグです。 */
+    private boolean gcovEnabled;
+
     /**
        デフォルトの入出力プロパティを生成します。
     */
@@ -35,6 +38,25 @@ public final class IOProperties {
 	outputDir = new File(".");
 	sourceFileCharset = Charset.defaultCharset();
 	gcovFileCharset = Charset.defaultCharset();
+	gcovEnabled = false;
+    }
+
+    /**
+       gcovファイルを出力するかどうか設定します。
+
+       @param b gcovファイルを出力する場合はtrue
+    */
+    public void setGcovEnabled(final boolean b) {
+	gcovEnabled = b;
+    }
+
+    /**
+       gcovファイルを出力するかどうか取得します。
+
+       @return gcovファイルを出力する場合はtrue
+    */
+    public boolean isGcovEnabled() {
+	return gcovEnabled;
     }
 
     /**

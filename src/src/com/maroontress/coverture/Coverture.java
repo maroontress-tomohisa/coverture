@@ -5,17 +5,9 @@ import com.maroontress.cui.Options;
 import com.maroontress.cui.OptionsParsingException;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.io.PrintWriter;
 import java.nio.charset.Charset;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 
 /**
    Covertureの起動クラスです。
@@ -28,9 +20,6 @@ public final class Coverture {
     /** デフォルトのスレッドの個数。 */
     private static final int DEFAULT_THREADS = 4;
 
-    /** gcovファイルを出力するかどうかのフラグです。 */
-    private boolean outputGcov;
-
     /** ソートして出力するかどうかのフラグです。 */
     private boolean sortsOutput;
 
@@ -38,7 +27,7 @@ public final class Coverture {
     private String inputFile;
 
     /** 入出力プロパティです。 */
-    private IOProperties ioProperties;
+    private IOProperties props;
 
     /** コマンドラインで指定されたgcnoファイルのパスの配列です。 */
     private String[] files;
@@ -49,8 +38,8 @@ public final class Coverture {
     /** コマンドラインオプションの定義です。 */
     private Options options;
 
-    /** Noteインスタンスを生成する非同期タスクのキューです。 */
-    private DeliveryService<Note> service;
+    /** gcnoファイルのプロセッサです。 */
+    private Processor processor;
 
     /**
        起動クラスのインスタンスを生成します。
@@ -60,7 +49,7 @@ public final class Coverture {
     private Coverture(final String[] av) {
 	threads = DEFAULT_THREADS;
 	sortsOutput = true;
-	ioProperties = new IOProperties();
+	props = new IOProperties();
 
 	options = new Options();
 	options.add("help", new OptionListener() {
@@ -77,7 +66,7 @@ public final class Coverture {
 
 	options.add("output-dir", new OptionListener() {
 	    public void run(final String name, final String arg) {
-		ioProperties.setOutputDir(new File(arg));
+		props.setOutputDir(new File(arg));
 	    }
 	}, "DIR", "Specify where to place generated files.");
 
@@ -91,20 +80,20 @@ public final class Coverture {
 	options.add("source-file-charset", new OptionListener() {
 	    public void run(final String name, final String arg)
 		throws OptionsParsingException {
-		ioProperties.setSourceFileCharset(getCharset(arg));
+		props.setSourceFileCharset(getCharset(arg));
 	    }
 	}, "CHARSET", "Specify the charset of source files.");
 
 	options.add("gcov", new OptionListener() {
 	    public void run(final String name, final String arg) {
-		outputGcov = true;
+		props.setGcovEnabled(true);
 	    }
 	}, "Output .gcov files compatible with gcov.");
 
 	options.add("gcov-file-charset", new OptionListener() {
 	    public void run(final String name, final String arg)
 		throws OptionsParsingException {
-		ioProperties.setGcovFileCharset(getCharset(arg));
+		props.setGcovFileCharset(getCharset(arg));
 	    }
 	}, "CHARSET", "Specify the charset of .gcov files.");
 
@@ -130,11 +119,11 @@ public final class Coverture {
 	    public void run(final String name, final String arg) {
 		sortsOutput = false;
 	    }
-	}, "Disable sorting.");
+	}, "Disable sorting and threading.");
 
 	options.add("verbose", new OptionListener() {
 	    public void run(final String name, final String arg) {
-		ioProperties.setVerbose(true);
+		props.setVerbose(true);
 	    }
 	}, "Be extra verbose.");
 
@@ -147,7 +136,12 @@ public final class Coverture {
 	if (files.length == 0 && inputFile == null) {
 	    usage();
 	}
-	service = new DeliveryService<Note>(threads);
+
+	if (sortsOutput) {
+	    processor = new DeliveryProcessor(props, threads);
+	} else {
+	    processor = new SimpleProcessor(props);
+	}
     }
 
     /**
@@ -172,127 +166,11 @@ public final class Coverture {
     }
 
     /**
-       gcnoファイルをひとつ処理します。
-
-       @param name 入力するgcnoファイルのファイル名
-    */
-    private void processFile(final String name) {
-	service.submit(new Callable<Note>() {
-	    public Note call() throws Exception {
-		Note note = Note.parse(name);
-		if (note == null) {
-		    return null;
-		}
-		if (outputGcov) {
-		    note.createSourceList(ioProperties);
-		}
-		return note;
-	    }
-	});
-    }
-
-    /**
-       ファイルからgcnoファイル名のリストを入力し、そのgcnoファイルを
-       処理します。
-
-       @param inputFile 入力するリストのファイル名
-       @throws IOException 入出力エラー
-    */
-    private void processFileList(final String inputFile) throws IOException {
-	try {
-	    InputStreamReader in;
-	    if (inputFile.equals("-")) {
-		in = new InputStreamReader(System.in);
-	    } else {
-		in = new FileReader(inputFile);
-	    }
-	    BufferedReader rd = new BufferedReader(in);
-	    String name;
-	    while ((name = rd.readLine()) != null) {
-		processFile(name);
-	    }
-	} catch (FileNotFoundException e) {
-	    System.err.printf("%s: not found: %s%n",
-			      inputFile, e.getMessage());
-	    System.exit(1);
-	}
-    }
-
-    /**
-       ヒープサイズを標準エラー出力に表示します。
-    */
-    private void verifyHeapSize() {
-	if (ioProperties.isVerbose()) {
-	    Runtime t = Runtime.getRuntime();
-	    t.gc();
-	    System.err.printf("heap: %d/%d%n", t.freeMemory(), t.maxMemory());
-	}
-    }
-
-    /**
-       ソートせずに結果を出力します。
-
-       @throws ExecutionException ワーカスレッドが例外をスロー
-    */
-    private void outputUnsorted() throws ExecutionException {
-	verifyHeapSize();
-
-	final PrintWriter out = new PrintWriter(System.out);
-	out.print("<gcno>\n");
-	service.deliver(new DeliveryListener<Note>() {
-	    public void deliver(final Note note) {
-		note.printXML(out);
-	    }
-	});
-	out.print("</gcno>\n");
-	out.close();
-    }
-
-    /**
-       ソートして結果を出力します。
-
-       @throws ExecutionException ワーカスレッドが例外をスロー
-    */
-    private void outputSorted() throws ExecutionException {
-	final Set<Note> set = new TreeSet<Note>(Note.getOriginComparator());
-	service.deliver(new DeliveryListener<Note>() {
-	    public void deliver(final Note note) {
-		set.add(note);
-	    }
-	});
-	verifyHeapSize();
-
-	PrintWriter out = new PrintWriter(System.out);
-	out.print("<gcno>\n");
-	for (Note note : set) {
-	    note.printXML(out);
-	}
-	out.print("</gcno>\n");
-	out.close();
-    }
-
-    /**
        指定されたファイルの入出力を実行します。
     */
     private void run() {
 	try {
-	    if (outputGcov) {
-		ioProperties.makeOutputDir();
-	    }
-	    for (String arg : files) {
-		processFile(arg);
-	    }
-	    if (inputFile != null) {
-		processFileList(inputFile);
-	    }
-	    if (sortsOutput) {
-		outputSorted();
-	    } else {
-		outputUnsorted();
-	    }
-	} catch (ExecutionException e) {
-	    e.getCause().printStackTrace();
-	    System.exit(1);
+	    processor.run(files, inputFile);
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.exit(1);
