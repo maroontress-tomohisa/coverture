@@ -28,7 +28,7 @@ public final class LineRecord {
     */
     public LineRecord(final ByteBuffer bb) throws IOException {
 	number = bb.getInt();
-	fileName = (number != 0) ? null : Parser.getString(bb);
+	fileName = (number != 0) ? null : Parser.getInternString(bb);
     }
 
     /**

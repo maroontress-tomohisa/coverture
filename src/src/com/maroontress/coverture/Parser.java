@@ -3,7 +3,6 @@ package com.maroontress.coverture;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.util.Arrays;
 
 /**
    gcno/gcdaファイルをパースするためのユーティリティクラスです。
@@ -44,19 +43,19 @@ public final class Parser {
     }
 
     /**
-       バイトバッファから文字列を入力し、そのバイト配列を返します。イ
-       ンスタンスはバイト配列です。文字列の長さが0のときはnullを返しま
-       す。ヌルターミネートのための0、およびパディングの0はスキップさ
-       れ、バイトバッファの位置は文字列の次の位置に進みます。
+       バイトバッファから文字列を入力し、そのインスタンスを返します。
+       文字列の長さが0のときはnullを返します。ヌルターミネートのための
+       0、およびパディングの0はスキップされ、バイトバッファの位置は文
+       字列の次の位置に進みます。
 
        string: int32:0 | int32:length char* char:0 padding
        padding: | char:0 | char:0 char:0 | char:0 char:0 char:0
 
        @param bb バイトバッファ
-       @return バイト配列
+       @return 文字列
        @throws IOException 入出力エラー
     */
-    public static byte[] getBytes(final ByteBuffer bb) throws IOException {
+    public static String getString(final ByteBuffer bb) throws IOException {
 	int length = bb.getInt();
 	if (length == 0) {
 	    return null;
@@ -68,38 +67,22 @@ public final class Parser {
 	for (k = 0; k < bytes.length && bytes[k] != 0; ++k) {
 	    continue;
 	}
-	return Arrays.copyOf(bytes, k);
+	return new String(bytes, 0, k, CHARSET);
     }
 
     /**
        バイトバッファから文字列を入力し、そのインスタンスを返します。
-       インスタンスはStirng.intern()が返す文字列です。文字列の長さが0
-       のときはnullを返します。ヌルターミネートのための0、およびパディ
-       ングの0はスキップされ、バイトバッファの位置は文字列の次の位置に
-       進みます。
 
-       string: int32:0 | int32:length char* char:0 padding
-       padding: | char:0 | char:0 char:0 | char:0 char:0 char:0
+       インスタンスはStirng.intern()が返す文字列です。それ以外の点につ
+       いてはParser.getString()と同様になります。
 
        @param bb バイトバッファ
        @return 文字列
        @throws IOException 入出力エラー
     */
-    public static String getString(final ByteBuffer bb) throws IOException {
-	byte[] bytes = getBytes(bb);
-	if (bytes == null) {
-	    return null;
-	}
-	return createString(bytes).intern();
-    }
-
-    /**
-       バイト配列を文字列に変換します。
-
-       @param bytes バイト配列
-       @return 文字列
-    */
-    public static String createString(final byte[] bytes) {
-	return new String(bytes, CHARSET);
+    public static String getInternString(final ByteBuffer bb)
+	throws IOException {
+	String s = getString(bb);
+	return (s == null) ? null : s.intern();
     }
 }
