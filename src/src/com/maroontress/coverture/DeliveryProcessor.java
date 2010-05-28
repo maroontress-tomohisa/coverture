@@ -58,7 +58,6 @@ public final class DeliveryProcessor extends Processor {
 	    e.getCause().printStackTrace();
 	    System.exit(1);
 	}
-	verifyHeapSize();
 
 	PrintWriter out = new PrintWriter(System.out);
 	out.print("<gcno>\n");

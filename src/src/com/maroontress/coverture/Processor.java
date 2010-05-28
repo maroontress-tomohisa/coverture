@@ -26,7 +26,7 @@ public abstract class Processor {
     /**
        verboseモードのときにヒープサイズを標準エラー出力に表示します。
     */
-    protected final void verifyHeapSize() {
+    private void verifyHeapSize() {
 	if (props.isVerbose()) {
 	    Runtime t = Runtime.getRuntime();
 	    t.gc();
@@ -117,6 +117,7 @@ public abstract class Processor {
     */
     public final void run(final String[] files,
 			  final String inputFile) throws IOException {
+	verifyHeapSize();
 	pre();
 	for (String arg : files) {
 	    processFile(arg);
@@ -125,5 +126,6 @@ public abstract class Processor {
 	    processFileList(inputFile);
 	}
 	post();
+	verifyHeapSize();
     }
 }

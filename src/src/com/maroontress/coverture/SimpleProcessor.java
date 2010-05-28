@@ -42,7 +42,5 @@ public final class SimpleProcessor extends Processor {
     protected void post() throws IOException {
 	out.print("</gcno>\n");
 	out.close();
-
-	verifyHeapSize();
     }
 }
