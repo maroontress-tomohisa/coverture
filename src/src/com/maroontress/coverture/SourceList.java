@@ -1,5 +1,6 @@
 package com.maroontress.coverture;
 
+import com.maroontress.gcovparser.Origin;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Collection;

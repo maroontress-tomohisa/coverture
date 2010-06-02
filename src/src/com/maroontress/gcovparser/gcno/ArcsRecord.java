@@ -1,6 +1,6 @@
-package com.maroontress.coverture.gcno;
+package com.maroontress.gcovparser.gcno;
 
-import com.maroontress.coverture.Parser;
+import com.maroontress.gcovparser.Parser;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 

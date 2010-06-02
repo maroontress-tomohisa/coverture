@@ -1,10 +1,10 @@
-package com.maroontress.coverture;
+package com.maroontress.gcovparser;
 
 /**
-   関数グラフのアークです。アークには向きがあり、開始ブロックから出て
-   終了ブロックに入ります。
+   関数グラフのアークのデフォルト実装です。アークには向きがあり、開始
+   ブロックから出て終了ブロックに入ります。
 */
-public final class Arc {
+public final class DefaultArc extends AbstractArc {
 
     /**
        スパニングツリーを構成するアークを表すフラグです。
@@ -24,10 +24,10 @@ public final class Arc {
     private static final int FLAG_FALL_THROUGH = 0x4;
 
     /** 開始ブロックです。 */
-    private Block start;
+    private DefaultBlock start;
 
     /** 終了ブロックです。 */
-    private Block end;
+    private DefaultBlock end;
 
     /**
        アークのフラグです。FLAG_ON_TREE, FLAG_FAKE, FLAG_FALL_THROUGH
@@ -63,7 +63,8 @@ public final class Arc {
        @param end 終了ブロック
        @param flags フラグ
     */
-    public Arc(final Block start, final Block end, final int flags) {
+    public DefaultArc(final DefaultBlock start, final DefaultBlock end,
+		      final int flags) {
 	this.start = start;
 	this.end = end;
 	this.flags = flags;
@@ -89,22 +90,13 @@ public final class Arc {
 	}
     }
 
-    /**
-       アークがスパニングツリーを構成するかどうか取得します。
-
-       @return スパニングツリーを構成する場合はtrue、そうでなければ
-       false
-    */
-    public boolean isOnTree() {
+    /** {@inheritDoc} */
+    @Override public boolean isOnTree() {
 	return (flags & FLAG_ON_TREE) != 0;
     }
 
-    /**
-       アークが偽のアークかどうか取得します。
-
-       @return 偽のアークの場合はtrue、そうでなければfalse
-    */
-    public boolean isFake() {
+    /** {@inheritDoc} */
+    @Override public boolean isFake() {
 	return (flags & FLAG_FAKE) != 0;
     }
 
@@ -143,7 +135,7 @@ public final class Arc {
 
        @return 開始ブロック
     */
-    public Block getStart() {
+    public DefaultBlock getStart() {
 	return start;
     }
 
@@ -152,16 +144,12 @@ public final class Arc {
 
        @return 終了ブロック
     */
-    public Block getEnd() {
+    public DefaultBlock getEnd() {
 	return end;
     }
 
-    /**
-       実行回数を追加します。
-
-       @param delta 追加する実行回数
-    */
-    public void addCount(final long delta) {
+    /** {@inheritDoc} */
+    @Override public void addCount(final long delta) {
 	count += delta;
     }
 
@@ -174,12 +162,8 @@ public final class Arc {
 	this.count = count;
     }
 
-    /**
-       実行回数を取得します。
-
-       @return 実行回数
-    */
-    public long getCount() {
+    /** {@inheritDoc} */
+    @Override public long getCount() {
 	return count;
     }
 

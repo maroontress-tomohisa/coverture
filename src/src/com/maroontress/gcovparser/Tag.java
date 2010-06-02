@@ -1,4 +1,4 @@
-package com.maroontress.coverture;
+package com.maroontress.gcovparser;
 
 /**
    レコードのタグを定義します。

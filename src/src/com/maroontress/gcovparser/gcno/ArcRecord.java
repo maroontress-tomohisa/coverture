@@ -1,4 +1,4 @@
-package com.maroontress.coverture.gcno;
+package com.maroontress.gcovparser.gcno;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

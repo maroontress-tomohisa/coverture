@@ -1,4 +1,4 @@
-package com.maroontress.coverture;
+package com.maroontress.gcovparser;
 
 /**
    ファイルが壊れていることを示す例外です。

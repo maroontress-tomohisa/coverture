@@ -1,20 +1,22 @@
-package com.maroontress.coverture;
+package com.maroontress.gcovparser;
 
-import com.maroontress.coverture.gcda.FunctionDataRecord;
-import com.maroontress.coverture.gcno.AnnounceFunctionRecord;
-import com.maroontress.coverture.gcno.ArcRecord;
-import com.maroontress.coverture.gcno.ArcsRecord;
-import com.maroontress.coverture.gcno.FunctionGraphRecord;
-import com.maroontress.coverture.gcno.LineRecord;
-import com.maroontress.coverture.gcno.LinesRecord;
-import java.io.PrintWriter;
+import com.maroontress.gcovparser.gcda.FunctionDataRecord;
+import com.maroontress.gcovparser.gcno.AnnounceFunctionRecord;
+import com.maroontress.gcovparser.gcno.ArcRecord;
+import com.maroontress.gcovparser.gcno.ArcsRecord;
+import com.maroontress.gcovparser.gcno.FunctionGraphRecord;
+import com.maroontress.gcovparser.gcno.LineRecord;
+import com.maroontress.gcovparser.gcno.LinesRecord;
 import java.util.ArrayList;
-import java.util.Comparator;
 
 /**
-   関数グラフです。
+   関数グラフのアブストラクト実装です。
+
+   @param <T> ブロックの具象クラス
+   @param <U> アークの具象クラス
 */
-public final class FunctionGraph {
+public abstract class AbstractFunctionGraph<T extends AbstractBlock,
+					      U extends AbstractArc> {
 
     /** 識別子です。 */
     private int id;
@@ -31,8 +33,9 @@ public final class FunctionGraph {
     /** 関数が出現するソースコードの行数です。 */
     private int lineNumber;
 
+    // 配列ではなくArrayListに...
     /** 関数を構成する基本ブロックの配列です。 */
-    private Block[] blocks;
+    private T[] blocks;
 
     /** すべてのアークの個数です。 */
     private int totalArcCount;
@@ -44,10 +47,10 @@ public final class FunctionGraph {
     private int fakeArcCount;
 
     /** 実行回数が判明しているアークのリストです。 */
-    private ArrayList<Arc> solvedArcs;
+    private ArrayList<U> solvedArcs;
 
     /** 実行回数が不明なアークのリストです。 */
-    private ArrayList<Arc> unsolvedArcs;
+    private ArrayList<U> unsolvedArcs;
 
     /** 呼び出された回数です。 */
     private long calledCount;
@@ -62,47 +65,84 @@ public final class FunctionGraph {
     private boolean solved;
 
     /**
-       ソースリストにこの関数グラフを追加し、すべてのブロックの行番号
-       毎の実行回数をマージします。
+       ブロックの配列を生成します。
 
-       フローグラフが解決していない場合は何もしません。
-
-       @param sourceList ソースリスト
+       @param size 配列の要素数
+       @return ブロックの配列
     */
-    public void addLineCounts(final SourceList sourceList) {
-	if (!solved) {
-	    return;
-	}
-	Source source = sourceList.getSource(sourceFile);
-	source.addFunctionGraph(this);
-	for (Block b : blocks) {
-	    b.addLineCounts(sourceList);
-	}
+    protected abstract T[] createBlockArray(int size);
+
+    /**
+       ブロックを生成します。
+
+       @param id 識別子
+       @param flags フラグ
+       @return ブロック
+    */
+    protected abstract T createBlock(int id, int flags);
+
+    /**
+       アークを生成します。
+
+       @param start 開始ブロック
+       @param end 終了ブロック
+       @param flags フラグ
+       @return アーク
+    */
+    protected abstract U createArc(T start, T end, int flags);
+
+    /**
+       ブロックの配列を取得します。
+
+       @return ブロックの配列
+    */
+    protected final T[] getBlocks() {
+	return blocks;
     }
 
     /**
-       関数グラフをXML形式で出力します。
+       チェックサムを取得します。
 
-       @param out 出力先
+       @return チェックサム
     */
-    public void printXML(final PrintWriter out) {
-	int complexityWithFake = totalArcCount - blocks.length + 2;
-	int complexity = complexityWithFake - fakeArcCount;
-	out.printf("<functionGraph id='%d' checksum='0x%x' functionName='%s'"
-		   + " sourceFile='%s' lineNumber='%d'"
-		   + " complexity='%d' complexityWithFake='%d'",
-		   id, checksum, XML.escape(functionName),
-		   XML.escape(sourceFile), lineNumber,
-		   complexity, complexityWithFake);
-	if (solved) {
-	    out.printf(" called='%d' returned='%d' executedBlocks='%d'",
-		       calledCount, returnedCount, executedBlockCount);
-	}
-	out.printf(" allBlocks='%d'>\n", getBlockCount());
-	for (Block b : blocks) {
-	    b.printXML(out);
-	}
-	out.printf("</functionGraph>\n");
+    protected final int getChecksum() {
+	return checksum;
+    }
+
+    /**
+       ソースコードのファイル名を取得します。
+
+       @return ソースコードのファイル名
+    */
+    protected final String getSourceFile() {
+	return sourceFile;
+    }
+
+    /**
+       複雑度を取得します。
+
+       @return 複雑度
+    */
+    protected final int getComplexity() {
+	return getComplexityWithFake() - fakeArcCount;
+    }
+
+    /**
+       フェイクのアークを考慮した複雑度を取得します。
+
+       @return フェイクのアークを考慮した複雑度
+    */
+    protected final int getComplexityWithFake() {
+	return totalArcCount - blocks.length + 2;
+    }
+
+    /**
+       フローグラフを解いたかどうかを取得します。
+
+       @return フローグラフを解いた場合はtrue
+    */
+    protected final boolean isSolved() {
+	return solved;
     }
 
     /**
@@ -111,7 +151,7 @@ public final class FunctionGraph {
        @param rec 関数グラフレコード
        @throws CorruptedFileException ファイルの構造が壊れていることを検出
     */
-    public FunctionGraph(final FunctionGraphRecord rec)
+    protected AbstractFunctionGraph(final FunctionGraphRecord rec)
 	throws CorruptedFileException {
 	AnnounceFunctionRecord announce = rec.getAnnounce();
 	id = announce.getId();
@@ -119,13 +159,13 @@ public final class FunctionGraph {
 	functionName = announce.getFunctionName();
 	sourceFile = announce.getSourceFile();
 	lineNumber = announce.getLineNumber();
-	solvedArcs = new ArrayList<Arc>();
-	unsolvedArcs = new ArrayList<Arc>();
+	solvedArcs = new ArrayList<U>();
+	unsolvedArcs = new ArrayList<U>();
 
 	int[] blockFlags = rec.getBlocks().getFlags();
-	blocks = new Block[blockFlags.length];
+	blocks = createBlockArray(blockFlags.length);
 	for (int k = 0; k < blockFlags.length; ++k) {
-	    blocks[k] = new Block(k, blockFlags[k]);
+	    blocks[k] = createBlock(k, blockFlags[k]);
 	}
 
 	ArcsRecord[] arcs = rec.getArcs();
@@ -141,15 +181,15 @@ public final class FunctionGraph {
 	if (blocks.length < 2) {
 	    throw new CorruptedFileException("lacks entry and/or exit blocks");
 	}
-	Block entryBlock = blocks[0];
-	Block exitBlock = blocks[blocks.length - 1];
+	T entryBlock = blocks[0];
+	T exitBlock = blocks[blocks.length - 1];
 	if (entryBlock.getInArcs().size() != 0) {
 	    throw new CorruptedFileException("has arcs to entry block");
 	}
 	if (exitBlock.getOutArcs().size() != 0) {
 	    throw new CorruptedFileException("has arcs from exit block");
 	}
-	for (Block e : blocks) {
+	for (T e : blocks) {
 	    e.presolve();
 	}
     }
@@ -173,9 +213,9 @@ public final class FunctionGraph {
 	    if (endIndex >= blocks.length) {
 		throw new CorruptedFileException();
 	    }
-	    Block start = blocks[startIndex];
-	    Block end = blocks[endIndex];
-	    Arc arc = new Arc(start, end, flags);
+	    T start = blocks[startIndex];
+	    T end = blocks[endIndex];
+	    U arc = createArc(start, end, flags);
 	    if (!arc.isOnTree()) {
 		/*
 		  スパニングツリーではないアーク。gcdaファイルにはこの
@@ -232,7 +272,7 @@ public final class FunctionGraph {
     */
     private void solveFlowGraph() throws CorruptedFileException {
 	Solver s = new Solver();
-	for (Block e : blocks) {
+	for (T e : blocks) {
 	    e.sortOutArcs();
 	    s.addInvalid(e);
 	}
@@ -248,9 +288,10 @@ public final class FunctionGraph {
     private void countCallSummary() {
 	calledCount = blocks[0].getCount();
 
-	ArrayList<Arc> list = blocks[blocks.length - 1].getInArcs();
+	ArrayList<? extends AbstractArc> list
+	    = blocks[blocks.length - 1].getInArcs();
 	long count = 0;
-	for (Arc arc : list) {
+	for (AbstractArc arc : list) {
 	    if (arc.isFake()) {
 		continue;
 	    }
@@ -273,7 +314,7 @@ public final class FunctionGraph {
        @param rec 関数データレコード
        @throws CorruptedFileException ファイルの構造が壊れていることを検出
     */
-    public void setFunctionDataRecord(final FunctionDataRecord rec)
+    public final void setFunctionDataRecord(final FunctionDataRecord rec)
 	throws CorruptedFileException {
 	if (checksum != rec.getChecksum()) {
 	    String m = String.format("gcda file: checksum mismatch for '%s'",
@@ -299,7 +340,7 @@ public final class FunctionGraph {
 
        @return 識別子
     */
-    public int getId() {
+    public final int getId() {
 	return id;
     }
 
@@ -308,7 +349,7 @@ public final class FunctionGraph {
 
        @return 関数が始まる行番号
     */
-    public int getLineNumber() {
+    public final int getLineNumber() {
 	return lineNumber;
     }
 
@@ -317,7 +358,7 @@ public final class FunctionGraph {
 
        @return 関数名
     */
-    public String getFunctionName() {
+    public final String getFunctionName() {
 	return functionName;
     }
 
@@ -329,7 +370,7 @@ public final class FunctionGraph {
 
        @return 関数が呼ばれた回数
     */
-    public long getCalledCount() {
+    public final long getCalledCount() {
 	return calledCount;
     }
 
@@ -341,7 +382,7 @@ public final class FunctionGraph {
 
        @return 関数から戻った回数
     */
-    public long getReturnedCount() {
+    public final long getReturnedCount() {
 	return returnedCount;
     }
 
@@ -353,7 +394,7 @@ public final class FunctionGraph {
 
        @return 実行されたブロック数（入口、出口を除く）
     */
-    public int getExecutedBlockCount() {
+    public final int getExecutedBlockCount() {
 	return executedBlockCount;
     }
 
@@ -362,30 +403,7 @@ public final class FunctionGraph {
 
        @return ブロック数（入口、出口を除く）
     */
-    public int getBlockCount() {
+    public final int getBlockCount() {
 	return blocks.length - 2;
-    }
-
-    /**
-       関数が始まる行番号で比較するコンパレータです。
-    */
-    private static Comparator<FunctionGraph> lineNumberComparator;
-
-    static {
-	lineNumberComparator = new Comparator<FunctionGraph>() {
-	    public int compare(final FunctionGraph fg1,
-			       final FunctionGraph fg2) {
-		return fg1.lineNumber - fg2.lineNumber;
-	    }
-	};
-    }
-
-    /**
-       関数が始まる行番号で比較するコンパレータを返します。
-
-       @return 関数が始まる行番号で比較するコンパレータ
-    */
-    public static Comparator<FunctionGraph> getLineNumberComparator() {
-	return lineNumberComparator;
     }
 }

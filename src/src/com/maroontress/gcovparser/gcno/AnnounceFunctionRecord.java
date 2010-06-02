@@ -1,8 +1,8 @@
-package com.maroontress.coverture.gcno;
+package com.maroontress.gcovparser.gcno;
 
-import com.maroontress.coverture.Parser;
-import com.maroontress.coverture.Tag;
-import com.maroontress.coverture.UnexpectedTagException;
+import com.maroontress.gcovparser.Parser;
+import com.maroontress.gcovparser.Tag;
+import com.maroontress.gcovparser.UnexpectedTagException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 

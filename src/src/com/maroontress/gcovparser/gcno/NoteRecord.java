@@ -1,6 +1,6 @@
-package com.maroontress.coverture.gcno;
+package com.maroontress.gcovparser.gcno;
 
-import com.maroontress.coverture.CorruptedFileException;
+import com.maroontress.gcovparser.CorruptedFileException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;

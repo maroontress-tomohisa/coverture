@@ -1,6 +1,6 @@
-package com.maroontress.coverture.gcda;
+package com.maroontress.gcovparser.gcda;
 
-import com.maroontress.coverture.Parser;
+import com.maroontress.gcovparser.Parser;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 

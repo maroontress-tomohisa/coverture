@@ -1,4 +1,4 @@
-package com.maroontress.coverture;
+package com.maroontress.gcovparser;
 
 import java.util.LinkedList;
 import java.util.Queue;
@@ -8,17 +8,17 @@ import java.util.Queue;
 */
 public final class Solver {
     /** 実行回数が判明したときにブロックを追加するキューです。 */
-    private Queue<Block> validBlocks;
+    private Queue<AbstractBlock> validBlocks;
 
     /** 実行回数が不明なときにブロックを追加するキューです。 */
-    private Queue<Block> invalidBlocks;
+    private Queue<AbstractBlock> invalidBlocks;
 
     /**
        インスタンスを生成します。
     */
     public Solver() {
-	validBlocks = new LinkedList<Block>();
-	invalidBlocks = new LinkedList<Block>();
+	validBlocks = new LinkedList<AbstractBlock>();
+	invalidBlocks = new LinkedList<AbstractBlock>();
     }
 
     /**
@@ -26,7 +26,7 @@ public final class Solver {
 
        @param b 実行回数が既知のブロック
     */
-    public void addValid(final Block b) {
+    public void addValid(final AbstractBlock b) {
 	validBlocks.add(b);
     }
 
@@ -35,7 +35,7 @@ public final class Solver {
 
        @param b 実行回数が不明のブロック
     */
-    public void addInvalid(final Block b) {
+    public void addInvalid(final AbstractBlock b) {
 	invalidBlocks.add(b);
     }
 
@@ -45,7 +45,7 @@ public final class Solver {
        @param b ブロック
        @param isValid ブロックの実行回数が判明している場合はtrue
     */
-    public void add(final Block b, final boolean isValid) {
+    public void add(final AbstractBlock b, final boolean isValid) {
 	(isValid ? validBlocks : invalidBlocks).add(b);
     }
 
@@ -57,7 +57,7 @@ public final class Solver {
     public void solve() throws CorruptedFileException {
 	int size = invalidBlocks.size();
 	while (size > 0) {
-	    Block e;
+	    AbstractBlock e;
 	    while ((e = invalidBlocks.poll()) != null) {
 		e.validate(this);
 	    }

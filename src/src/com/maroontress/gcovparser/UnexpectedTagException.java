@@ -1,4 +1,4 @@
-package com.maroontress.coverture;
+package com.maroontress.gcovparser;
 
 /**
    予期しないタグに遭遇したことを示す例外です。

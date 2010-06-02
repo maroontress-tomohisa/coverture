@@ -1,6 +1,5 @@
-package com.maroontress.coverture;
+package com.maroontress.gcovparser;
 
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -9,10 +8,7 @@ import java.util.TreeMap;
 /**
    関数グラフのノードとなる基本ブロックです。
 */
-public final class Block {
-
-    /** パーセントに変換するための係数です。 */
-    private static final double PERCENT = 100;
+public final class DefaultBlock extends AbstractBlock {
 
     /** ブロックの識別子です。 */
     private int id;
@@ -21,80 +17,49 @@ public final class Block {
     private int flags;
 
     /** 「入るアーク」のリストです。 */
-    private ArrayList<Arc> inArcs;
+    private ArrayList<DefaultArc> inArcs;
 
     /** 実行回数が判明した「入るアーク」の集合です。 */
-    private LinkedList<Arc> solvedInArcs;
+    private LinkedList<DefaultArc> solvedInArcs;
 
     /** 実行回数が不明な「入るアーク」の集合です。 */
-    private LinkedList<Arc> unsolvedInArcs;
+    private LinkedList<DefaultArc> unsolvedInArcs;
 
     /** 「出るアーク」のリストです。 */
-    private ArrayList<Arc> outArcs;
+    private ArrayList<DefaultArc> outArcs;
 
     /** 実行回数が判明した「出るアーク」のリストです。 */
-    private LinkedList<Arc> solvedOutArcs;
+    private LinkedList<DefaultArc> solvedOutArcs;
 
     /** 実行回数が不明な「出るアーク」のリストです。 */
-    private LinkedList<Arc> unsolvedOutArcs;
+    private LinkedList<DefaultArc> unsolvedOutArcs;
 
     /** ブロックの実行回数です。 */
     private long count;
 
     /**
-       Block is a call instrumenting site; does the call: 関数を呼び出
-       すブロックであることを示します。
+       Block is a call instrumenting site; does the call: 関数呼び出し
+       計測ブロック（コール）であることを示します。
     */
     private boolean callSite;
 
     /**
-       Block is a call instrumenting site; is the return. 呼び出しから
-       の戻りとなるブロックであることを示します。
+       Block is a call instrumenting site; is the return: 関数呼び出し
+       計測ブロック（リターン）かどうかを取得します。
     */
     private boolean callReturn;
 
     /**
-       Block is a landing pad for longjmp or throw: アークの終点が
-       catchまたはsetjmp()であることを示します。
+       Block is a landing pad for longjmp or throw: longjmp()または
+       throwの着地点である（setjmp()またはcatchである）ことを示します。
     */
     private boolean nonLocalReturn;
 
     /** ブロックに対応するソースコードの行エントリの配列です。 */
     private LineEntry[] lines;
 
-    /**
-       行番号毎の実行回数をソースリストにマージします。
-
-       事前に実行回数のカウントが有効になっている必要があります。
-
-       @param sourceList ソースリスト
-    */
-    public void addLineCounts(final SourceList sourceList) {
-	assert (count >= 0);
-	if (lines == null) {
-	    return;
-	}
-	// 次のforの中はLineEntryに移せる...
-	// e.addLineCounts(sourcelist, count);
-	for (LineEntry e : lines) {
-	    String fileName = e.getFileName();
-	    int[] nums = e.getLines();
-	    if (nums.length == 0) {
-		continue;
-	    }
-	    Source source = sourceList.getSource(fileName);
-	    for (int k = 0; k < nums.length; ++k) {
-		source.addLineCount(nums[k], count);
-	    }
-	}
-    }
-
-    /**
-       カウントを取得します。カウントが有効でないときは0を返します。
-
-       @return カウント
-    */
-    public long getCount() {
+    /** {@inheritDoc} */
+    @Override public long getCount() {
 	return (count < 0) ? 0 : count;
     }
 
@@ -108,86 +73,28 @@ public final class Block {
     }
 
     /**
-       実行割合（パーセント）を取得します。
-
-       @param c 実行回数
-       @return 実行割合
-    */
-    private double getRate(final long c) {
-	return (count == 0) ? 0 : PERCENT * c / count;
-    }
-
-    /**
-       XMLでブロックを出力します。
-
-       @param out 出力先
-    */
-    public void printXML(final PrintWriter out) {
-	final boolean countValid = getCountValid();
-
-	out.printf("<block id='%d' flags='0x%x' callSite='%b' "
-		   + "callReturn='%b' nonLocalReturn='%b'",
-		   id, flags, callSite, callReturn, nonLocalReturn);
-	if (countValid) {
-	    out.printf(" count='%d'", count);
-	}
-	out.printf(">\n");
-
-	for (Arc arc : outArcs) {
-	    out.printf("<arc destination='%d' fake='%b' onTree='%b' "
-		       + "fallThrough='%b' callNonReturn='%b' "
-		       + "nonLocalReturn='%b' unconditional='%b'",
-		       arc.getEnd().getId(), arc.isFake(), arc.isOnTree(),
-		       arc.isFallThrough(), arc.isCallNonReturn(),
-		       arc.isNonLocalReturn(), arc.isUnconditional());
-	    if (countValid) {
-		long c = arc.getCount();
-		out.printf(" count='%d' rate='%.2f'", c, getRate(c));
-	    }
-	    out.printf("/>\n");
-	}
-	if (lines != null) {
-	    // 次のforの中はLineEntryに移せる...
-	    // e.printXML();
-	    for (LineEntry e : lines) {
-		String fileName = e.getFileName();
-		int[] nums = e.getLines();
-		if (nums.length == 0) {
-		    continue;
-		}
-		out.printf("<lines fileName='%s'>\n", XML.escape(fileName));
-		for (int k = 0; k < nums.length; ++k) {
-		    out.printf("<line number='%d' />\n", nums[k]);
-		}
-		out.printf("</lines>\n");
-	    }
-	}
-	out.printf("</block>\n");
-    }
-
-    /**
        ブロックを生成します。
 
        @param id ブロックの識別子
        @param flags ブロックのフラグ
     */
-    public Block(final int id, final int flags) {
+    public DefaultBlock(final int id, final int flags) {
 	this.id = id;
 	this.flags = flags;
 	this.count = -1;
-	inArcs = new ArrayList<Arc>();
-	solvedInArcs = new LinkedList<Arc>();
-	unsolvedInArcs = new LinkedList<Arc>();
-	outArcs = new ArrayList<Arc>();
-	solvedOutArcs = new LinkedList<Arc>();
-	unsolvedOutArcs = new LinkedList<Arc>();
+	inArcs = new ArrayList<DefaultArc>();
+	solvedInArcs = new LinkedList<DefaultArc>();
+	unsolvedInArcs = new LinkedList<DefaultArc>();
+	outArcs = new ArrayList<DefaultArc>();
+	solvedOutArcs = new LinkedList<DefaultArc>();
+	unsolvedOutArcs = new LinkedList<DefaultArc>();
     }
 
     /**
-       関数を呼び出すブロックかどうかを設定します。
+       関数呼び出し計測ブロック（コール）かどうかを設定します。
 
-       @param b 関数を呼び出すブロックの場合はtrue、そうでなければ
-       false
+       @param b 関数呼び出し計測ブロック（コール）の場合はtrue、そうで
+       なければfalse
     */
     public void setCallSite(final boolean b) {
 	callSite = b;
@@ -204,6 +111,15 @@ public final class Block {
     }
 
     /**
+       行エントリの配列を取得します。
+
+       @return 行エントリの配列
+    */
+    public LineEntry[] getLines() {
+	return lines;
+    }
+
+    /**
        このブロックにアークを追加します。
 
        @param arcs アークのリスト
@@ -211,10 +127,10 @@ public final class Block {
        @param solvedArcs 実行回数が判明するアークの集合
        @param arc アーク
     */
-    private void addArc(final ArrayList<Arc> arcs,
-			final LinkedList<Arc> unsolvedArcs,
-			final LinkedList<Arc> solvedArcs,
-			final Arc arc) {
+    private void addArc(final ArrayList<DefaultArc> arcs,
+			final LinkedList<DefaultArc> unsolvedArcs,
+			final LinkedList<DefaultArc> solvedArcs,
+			final DefaultArc arc) {
 	arcs.add(arc);
 	if (arc.isOnTree()) {
 	    unsolvedArcs.add(arc);
@@ -228,7 +144,7 @@ public final class Block {
 
        @param arc アーク
     */
-    public void addInArc(final Arc arc) {
+    public void addInArc(final DefaultArc arc) {
 	addArc(inArcs, unsolvedInArcs, solvedInArcs, arc);
     }
 
@@ -237,35 +153,28 @@ public final class Block {
 
        @param arc アーク
     */
-    public void addOutArc(final Arc arc) {
+    public void addOutArc(final DefaultArc arc) {
 	addArc(outArcs, unsolvedOutArcs, solvedOutArcs, arc);
     }
 
-    /**
-       このブロックの行エントリの配列を設定します。
-
-       @param lines 行エントリの配列
-    */
-    public void setLines(final LineEntry[] lines) {
+    /** {@inheritDoc} */
+    @Override public void setLines(final LineEntry[] lines) {
 	this.lines = lines;
     }
 
-    /**
-       識別子を取得します。
-
-       @return 識別子
-    */
-    public int getId() {
+    /** {@inheritDoc} */
+    @Override public int getId() {
 	return id;
     }
 
-    /**
-       「入るアーク」のリストを取得します。
-
-       @return 「入るアーク」のリスト
-    */
-    public ArrayList<Arc> getInArcs() {
+    /** {@inheritDoc} */
+    @Override public ArrayList<? extends AbstractArc> getInArcs() {
 	return inArcs;
+    }
+
+    /** {@inheritDoc} */
+    @Override public ArrayList<? extends AbstractArc> getOutArcs() {
+	return outArcs;
     }
 
     /**
@@ -273,31 +182,57 @@ public final class Block {
 
        @return 「出るアーク」のリスト
     */
-    public ArrayList<Arc> getOutArcs() {
+    public ArrayList<DefaultArc> getOutDefaultArcs() {
+	// FunctionGraphの実装を直せば、このメソッドは不要
 	return outArcs;
     }
 
     /**
-       関数を呼び出すブロックかどうかを取得します。
+       フラグを取得します。
 
-       @return 関数を呼び出すブロックの場合はtrue、そうでなければfalse
+       @return フラグ
+    */
+    public int getFlags() {
+	return flags;
+    }
+
+    /**
+       関数呼び出し計測ブロック（コール）かどうかを取得します。
+
+       @return 関数呼び出し計測ブロック（コール）の場合はtrue、そうで
+       なければfalse
     */
     public boolean isCallSite() {
 	return callSite;
     }
 
     /**
-       フローグラフを解くための準備をします。
+       関数呼び出し計測ブロック（リターン）かどうかを取得します。
 
-       ブロックから出る偽でないアークが1つしかない場合、そのアークを無
-       条件分岐に設定します。さらに、そのアークが入るブロックが「呼び
-       出しからの戻り」であるかどうかを設定します。
+       @return 関数呼び出し計測ブロック（リターン）の場合はtrue、そう
+       でなければfalse
     */
-    public void presolve() {
-	int nonFakeArcs = 0;
-	Arc lastNonFakeArc = null;
+    public boolean isCallReturn() {
+	return callReturn;
+    }
 
-	for (Arc a : outArcs) {
+    /**
+       このブロックがlongjmp()またはthrowの着地点である（setjmp()また
+       はcatchである）かどうかを取得します。
+
+       @return このブロックがlongjmp()またはthrowの着地点である場合は
+       true、そうでなければfalse
+    */
+    public boolean isNonLocalReturn() {
+	return nonLocalReturn;
+    }
+
+    /** {@inheritDoc} */
+    @Override public void presolve() {
+	int nonFakeArcs = 0;
+	DefaultArc lastNonFakeArc = null;
+
+	for (DefaultArc a : outArcs) {
 	    if (!a.isFake()) {
 		lastNonFakeArc = a;
 		++nonFakeArcs;
@@ -306,8 +241,8 @@ public final class Block {
 	if (nonFakeArcs != 1) {
 	    return;
 	}
-	Arc arc = lastNonFakeArc;
-	Block destBlock = arc.getEnd();
+	DefaultArc arc = lastNonFakeArc;
+	DefaultBlock destBlock = arc.getEnd();
 	/*
 	  If there is only one non-fake exit, it is an unconditional
 	  branch.
@@ -328,13 +263,11 @@ public final class Block {
 	}
     }
 
-    /**
-       「出るアーク」のリストをその終了ブロックの識別子順にソートする。
-    */
-    public void sortOutArcs() {
-	TreeMap<Integer, Arc> map = new TreeMap<Integer, Arc>();
-	for (Arc a : outArcs) {
-	    map.put(a.getEnd().id, a);
+    /** {@inheritDoc} */
+    @Override public void sortOutArcs() {
+	TreeMap<Integer, DefaultArc> map = new TreeMap<Integer, DefaultArc>();
+	for (DefaultArc a : outArcs) {
+	    map.put(a.getEnd().getId(), a);
 	}
 	outArcs.clear();
 	outArcs.addAll(map.values());
@@ -346,9 +279,9 @@ public final class Block {
        @param arcs アークの集合
        @return 総実行回数
     */
-    private long sumCount(final Collection<Arc> arcs) {
+    private long sumCount(final Collection<DefaultArc> arcs) {
 	long total = 0;
-	for (Arc a : arcs) {
+	for (DefaultArc a : arcs) {
 	    total += a.getCount();
 	}
 	return total;
@@ -361,8 +294,8 @@ public final class Block {
        @param unsolvedArcs 実行回数が不明なアークのリスト
        @return 実行回数が求まった時はtrue、そうでなければfalse
     */
-    private boolean validateCount(final ArrayList<Arc> arcs,
-				  final LinkedList<Arc> unsolvedArcs) {
+    private boolean validateCount(final ArrayList<DefaultArc> arcs,
+				  final LinkedList<DefaultArc> unsolvedArcs) {
 	if (arcs.size() > 0 && unsolvedArcs.size() == 0) {
 	    count = sumCount(arcs);
 	    return true;
@@ -370,19 +303,8 @@ public final class Block {
 	return false;
     }
 
-    /**
-       実行回数を求めます。
-
-       「入るアーク」の実行回数がすべて求まっているか、「出るアーク」
-       の実行回数がすべて求まっている場合、それらの総和をブロックの実
-       行回数として計算し、ブロックをソルバに追加します。
-
-       「入るアーク」と「出るアーク」のどちらも実行回数が求まっていな
-       い場合は何もしません。
-
-       @param s フローグラフソルバ
-    */
-    public void validate(final Solver s) {
+    /** {@inheritDoc} */
+    @Override public void validate(final Solver s) {
 	if (validateCount(inArcs, unsolvedInArcs)
 	    || validateCount(outArcs, unsolvedOutArcs)) {
 	    s.addValid(this);
@@ -402,7 +324,7 @@ public final class Block {
        @param s フローグラフソルバ
        @param arc 実行回数が判明したアーク
     */
-    private void validateInSideBlock(final Solver s, final Arc arc) {
+    private void validateInSideBlock(final Solver s, final DefaultArc arc) {
 	unsolvedOutArcs.remove(arc);
 	solvedOutArcs.add(arc);
 	if (inArcs.size() > 0 && unsolvedInArcs.size() == 0) {
@@ -427,7 +349,7 @@ public final class Block {
        @param s フローグラフソルバ
     */
     private void validateInSide(final Solver s) {
-	Arc arc = unsolvedInArcs.remove();
+	DefaultArc arc = unsolvedInArcs.remove();
 	arc.setCount(count - sumCount(solvedInArcs));
 	solvedInArcs.add(arc);
 	// arcが出るブロックについての処理
@@ -447,7 +369,7 @@ public final class Block {
        @param s フローグラフソルバ
        @param arc 実行回数が判明したアーク
     */
-    private void validateOutSideBlock(final Solver s, final Arc arc) {
+    private void validateOutSideBlock(final Solver s, final DefaultArc arc) {
 	unsolvedInArcs.remove(arc);
 	solvedInArcs.add(arc);
 	if (outArcs.size() > 0 && unsolvedOutArcs.size() == 0) {
@@ -472,22 +394,15 @@ public final class Block {
        @param s フローグラフソルバ
     */
     private void validateOutSide(final Solver s) {
-	Arc arc = unsolvedOutArcs.remove();
+	DefaultArc arc = unsolvedOutArcs.remove();
 	arc.setCount(count - sumCount(solvedOutArcs));
 	solvedOutArcs.add(arc);
 	// arcが入るブロックについての処理
 	arc.getEnd().validateOutSideBlock(s, arc);
     }
 
-    /**
-       ブロックに入るアーク、出るアークそれぞれについて、実行回数が不
-       明なものが1つだけなら、それの実行回数を求めます。
-
-       ブロックは既に実行回数が判明している必要があります。
-
-       @param s フローグラフソルバ
-    */
-    public void validateSides(final Solver s) {
+    /** {@inheritDoc} */
+    @Override public void validateSides(final Solver s) {
 	if (unsolvedInArcs.size() == 1) {
 	    validateInSide(s);
 	}

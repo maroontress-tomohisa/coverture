@@ -1,8 +1,8 @@
-package com.maroontress.coverture.gcda;
+package com.maroontress.gcovparser.gcda;
 
-import com.maroontress.coverture.CorruptedFileException;
-import com.maroontress.coverture.Tag;
-import com.maroontress.coverture.UnexpectedTagException;
+import com.maroontress.gcovparser.CorruptedFileException;
+import com.maroontress.gcovparser.Tag;
+import com.maroontress.gcovparser.UnexpectedTagException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
