@@ -16,7 +16,7 @@ import java.util.ArrayList;
    @param <U> アークの具象クラス
 */
 public abstract class AbstractFunctionGraph<T extends AbstractBlock,
-					      U extends AbstractArc> {
+					    U extends AbstractArc> {
 
     /** 識別子です。 */
     private int id;
@@ -154,7 +154,6 @@ public abstract class AbstractFunctionGraph<T extends AbstractBlock,
 	unsolvedArcs = new ArrayList<U>();
 
 	int[] blockFlags = rec.getBlocks().getFlags();
-	// totalBlockCount = blockFlags.length;
 	blocks = new ArrayList<T>(blockFlags.length);
 	for (int k = 0; k < blockFlags.length; ++k) {
 	    blocks.add(createBlock(k, blockFlags[k]));
@@ -170,12 +169,12 @@ public abstract class AbstractFunctionGraph<T extends AbstractBlock,
 	    addLinesRecord(e);
 	}
 
-	if (blocks.size() < 2) {
+	int blockCount = blocks.size();
+	if (blockCount < 2) {
 	    throw new CorruptedFileException("lacks entry and/or exit blocks");
 	}
-	// メンバーに?
 	T entryBlock = blocks.get(0);
-	T exitBlock = blocks.get(blocks.size() - 1);
+	T exitBlock = blocks.get(blockCount - 1);
 	if (entryBlock.getInArcs().size() != 0) {
 	    throw new CorruptedFileException("has arcs to entry block");
 	}
@@ -195,15 +194,16 @@ public abstract class AbstractFunctionGraph<T extends AbstractBlock,
     */
     private void addArcsRecord(final ArcsRecord arcsRecord)
 	throws CorruptedFileException {
+	int blockCount = blocks.size();
 	int startIndex = arcsRecord.getStartIndex();
 	ArcRecord[] list = arcsRecord.getList();
-	if (startIndex >= blocks.size()) {
+	if (startIndex >= blockCount) {
 	    throw new CorruptedFileException();
 	}
 	for (ArcRecord arcRecord : list) {
 	    int endIndex = arcRecord.getEndIndex();
 	    int flags = arcRecord.getFlags();
-	    if (endIndex >= blocks.size()) {
+	    if (endIndex >= blockCount) {
 		throw new CorruptedFileException();
 	    }
 	    T start = blocks.get(startIndex);
@@ -281,8 +281,9 @@ public abstract class AbstractFunctionGraph<T extends AbstractBlock,
     private void countCallSummary() {
 	calledCount = blocks.get(0).getCount();
 
+	int blockCount = blocks.size();
 	ArrayList<? extends AbstractArc> list
-	    = blocks.get(blocks.size() - 1).getInArcs();
+	    = blocks.get(blockCount - 1).getInArcs();
 	long count = 0;
 	for (AbstractArc arc : list) {
 	    if (arc.isFake()) {
@@ -293,7 +294,7 @@ public abstract class AbstractFunctionGraph<T extends AbstractBlock,
 	returnedCount = count;
 
 	int start = 1;
-	int end = blocks.size() - 1;
+	int end = blockCount - 1;
 	for (int k = start; k < end; ++k) {
 	    if (blocks.get(k).getCount() > 0) {
 		++executedBlockCount;
