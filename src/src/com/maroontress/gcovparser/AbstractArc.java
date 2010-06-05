@@ -12,6 +12,44 @@ public abstract class AbstractArc {
     }
 
     /**
+       アークの終了ブロックを取得します。
+
+       @return 終了ブロック
+    */
+    public abstract AbstractBlock getEnd();
+
+    /**
+       アークが分岐しなかった経路であるかどうか取得します。
+
+       @return アークが分岐しなかった経路の場合はtrue、そうでなければ
+       false
+    */
+    public abstract boolean isFallThrough();
+
+    /**
+       アークがexit()などのような戻らない関数の呼び出しであるかどうか
+       取得します。
+
+       @return 戻らない関数の呼び出しの場合はtrue、そうでなければfalse
+    */
+    public abstract boolean isCallNonReturn();
+
+    /**
+       アークの行き先がcatchまたはsetjmp()であるかどうかを取得します。
+
+       @return アークの行き先がcatchまたはsetjmp()である場合はtrue、そ
+       うでなければfalse
+    */
+    public abstract boolean isNonLocalReturn();
+
+    /**
+       無条件分岐かどうかを取得します。
+
+       @return 無条件分岐ならtrue、そうでなければfalse
+    */
+    public abstract boolean isUnconditional();
+
+    /**
        アークがスパニングツリーを構成するかどうか取得します。
 
        @return スパニングツリーを構成する場合はtrue、そうでなければ

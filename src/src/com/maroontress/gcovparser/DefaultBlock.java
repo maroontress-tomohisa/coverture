@@ -1,8 +1,8 @@
 package com.maroontress.gcovparser;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.TreeMap;
 
 /**
@@ -20,19 +20,19 @@ public final class DefaultBlock extends AbstractBlock {
     private ArrayList<DefaultArc> inArcs;
 
     /** 実行回数が判明した「入るアーク」の集合です。 */
-    private LinkedList<DefaultArc> solvedInArcs;
+    private ArrayDeque<DefaultArc> solvedInArcs;
 
     /** 実行回数が不明な「入るアーク」の集合です。 */
-    private LinkedList<DefaultArc> unsolvedInArcs;
+    private ArrayDeque<DefaultArc> unsolvedInArcs;
 
     /** 「出るアーク」のリストです。 */
     private ArrayList<DefaultArc> outArcs;
 
     /** 実行回数が判明した「出るアーク」のリストです。 */
-    private LinkedList<DefaultArc> solvedOutArcs;
+    private ArrayDeque<DefaultArc> solvedOutArcs;
 
     /** 実行回数が不明な「出るアーク」のリストです。 */
-    private LinkedList<DefaultArc> unsolvedOutArcs;
+    private ArrayDeque<DefaultArc> unsolvedOutArcs;
 
     /** ブロックの実行回数です。 */
     private long count;
@@ -83,11 +83,11 @@ public final class DefaultBlock extends AbstractBlock {
 	this.flags = flags;
 	this.count = -1;
 	inArcs = new ArrayList<DefaultArc>();
-	solvedInArcs = new LinkedList<DefaultArc>();
-	unsolvedInArcs = new LinkedList<DefaultArc>();
+	solvedInArcs = new ArrayDeque<DefaultArc>();
+	unsolvedInArcs = new ArrayDeque<DefaultArc>();
 	outArcs = new ArrayList<DefaultArc>();
-	solvedOutArcs = new LinkedList<DefaultArc>();
-	unsolvedOutArcs = new LinkedList<DefaultArc>();
+	solvedOutArcs = new ArrayDeque<DefaultArc>();
+	unsolvedOutArcs = new ArrayDeque<DefaultArc>();
     }
 
     /**
@@ -128,8 +128,8 @@ public final class DefaultBlock extends AbstractBlock {
        @param arc アーク
     */
     private void addArc(final ArrayList<DefaultArc> arcs,
-			final LinkedList<DefaultArc> unsolvedArcs,
-			final LinkedList<DefaultArc> solvedArcs,
+			final ArrayDeque<DefaultArc> unsolvedArcs,
+			final ArrayDeque<DefaultArc> solvedArcs,
 			final DefaultArc arc) {
 	arcs.add(arc);
 	if (arc.isOnTree()) {
@@ -174,16 +174,6 @@ public final class DefaultBlock extends AbstractBlock {
 
     /** {@inheritDoc} */
     @Override public ArrayList<? extends AbstractArc> getOutArcs() {
-	return outArcs;
-    }
-
-    /**
-       「出るアーク」のリストを取得します。
-
-       @return 「出るアーク」のリスト
-    */
-    public ArrayList<DefaultArc> getOutDefaultArcs() {
-	// FunctionGraphの実装を直せば、このメソッドは不要
 	return outArcs;
     }
 
@@ -295,7 +285,7 @@ public final class DefaultBlock extends AbstractBlock {
        @return 実行回数が求まった時はtrue、そうでなければfalse
     */
     private boolean validateCount(final ArrayList<DefaultArc> arcs,
-				  final LinkedList<DefaultArc> unsolvedArcs) {
+				  final ArrayDeque<DefaultArc> unsolvedArcs) {
 	if (arcs.size() > 0 && unsolvedArcs.size() == 0) {
 	    count = sumCount(arcs);
 	    return true;
@@ -328,12 +318,12 @@ public final class DefaultBlock extends AbstractBlock {
 	unsolvedOutArcs.remove(arc);
 	solvedOutArcs.add(arc);
 	if (inArcs.size() > 0 && unsolvedInArcs.size() == 0) {
-	    // 既に実行回数が判明していた
+	    /* 既に実行回数が判明していた */
 	    if (unsolvedOutArcs.size() == 1) {
 		validateOutSide(s);
 	    }
 	} else {
-	    // まだ実行回数が不明
+	    /* まだ実行回数が不明 */
 	    s.add(this, validateCount(outArcs, unsolvedOutArcs));
 	}
     }
@@ -352,7 +342,7 @@ public final class DefaultBlock extends AbstractBlock {
 	DefaultArc arc = unsolvedInArcs.remove();
 	arc.setCount(count - sumCount(solvedInArcs));
 	solvedInArcs.add(arc);
-	// arcが出るブロックについての処理
+	/* arcが出るブロックについての処理 */
 	arc.getStart().validateInSideBlock(s, arc);
     }
 
@@ -373,12 +363,12 @@ public final class DefaultBlock extends AbstractBlock {
 	unsolvedInArcs.remove(arc);
 	solvedInArcs.add(arc);
 	if (outArcs.size() > 0 && unsolvedOutArcs.size() == 0) {
-	    // 既に実行回数が判明していた
+	    /* 既に実行回数が判明していた */
 	    if (unsolvedInArcs.size() == 1) {
 		validateInSide(s);
 	    }
 	} else {
-	    // まだ実行回数が不明
+	    /* まだ実行回数が不明 */
 	    s.add(this, validateCount(inArcs, unsolvedInArcs));
 	}
     }
@@ -397,7 +387,7 @@ public final class DefaultBlock extends AbstractBlock {
 	DefaultArc arc = unsolvedOutArcs.remove();
 	arc.setCount(count - sumCount(solvedOutArcs));
 	solvedOutArcs.add(arc);
-	// arcが入るブロックについての処理
+	/* arcが入るブロックについての処理 */
 	arc.getEnd().validateOutSideBlock(s, arc);
     }
 

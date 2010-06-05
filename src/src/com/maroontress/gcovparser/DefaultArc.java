@@ -100,33 +100,18 @@ public final class DefaultArc extends AbstractArc {
 	return (flags & FLAG_FAKE) != 0;
     }
 
-    /**
-       アークが分岐しなかった経路であるかどうか取得します。
-
-       @return アークが分岐しなかった経路の場合はtrue、そうでなければ
-       false
-    */
-    public boolean isFallThrough() {
+    /** {@inheritDoc} */
+    @Override public boolean isFallThrough() {
 	return (flags & FLAG_FALL_THROUGH) != 0;
     }
 
-    /**
-       アークがexit()などのような戻らない関数の呼び出しであるかどうか
-       取得します。
-
-       @return 戻らない関数の呼び出しの場合はtrue、そうでなければfalse
-    */
-    public boolean isCallNonReturn() {
+    /** {@inheritDoc} */
+    @Override public boolean isCallNonReturn() {
 	return callNonReturn;
     }
 
-    /**
-       アークの行き先がcatchまたはsetjmp()であるかどうかを取得します。
-
-       @return アークの行き先がcatchまたはsetjmp()である場合はtrue、そ
-       うでなければfalse
-    */
-    public boolean isNonLocalReturn() {
+    /** {@inheritDoc} */
+    @Override public boolean isNonLocalReturn() {
 	return nonLocalReturn;
     }
 
@@ -139,12 +124,8 @@ public final class DefaultArc extends AbstractArc {
 	return start;
     }
 
-    /**
-       アークの終了ブロックを取得します。
-
-       @return 終了ブロック
-    */
-    public DefaultBlock getEnd() {
+    /** {@inheritDoc} */
+    @Override public DefaultBlock getEnd() {
 	return end;
     }
 
@@ -176,11 +157,7 @@ public final class DefaultArc extends AbstractArc {
 	unconditional = b;
     }
 
-    /**
-       無条件分岐かどうかを取得します。
-
-       @return 無条件分岐ならtrue、そうでなければfalse
-    */
+    /** {@inheritDoc} */
     public boolean isUnconditional() {
 	return unconditional;
     }

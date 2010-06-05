@@ -14,11 +14,6 @@ public final class FunctionGraph
     extends AbstractFunctionGraph<Block, DefaultArc> {
 
     /** {@inheritDoc} */
-    @Override protected Block[] createBlockArray(final int size) {
-	return new Block[size];
-    }
-
-    /** {@inheritDoc} */
     @Override protected Block createBlock(final int id, final int blockFlags) {
 	return new Block(id, blockFlags);
     }
@@ -44,7 +39,7 @@ public final class FunctionGraph
 	}
 	Source source = sourceList.getSource(getSourceFile());
 	source.addFunctionGraph(this);
-	Block[] blocks = getBlocks();
+	Iterable<Block> blocks = getBlocks();
 	for (Block b : blocks) {
 	    b.addLineCounts(sourceList);
 	}
@@ -68,7 +63,7 @@ public final class FunctionGraph
 		       getExecutedBlockCount());
 	}
 	out.printf(" allBlocks='%d'>\n", getBlockCount());
-	Block[] blocks = getBlocks();
+	Iterable<Block> blocks = getBlocks();
 	for (Block b : blocks) {
 	    b.printXML(out);
 	}

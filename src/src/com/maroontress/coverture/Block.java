@@ -98,9 +98,8 @@ public final class Block extends AbstractBlock {
 	}
 	out.printf(">\n");
 
-	// DefaultArcではなく、AbstractArcで書けるようにする
-	ArrayList<DefaultArc> outArcs = impl.getOutDefaultArcs();
-	for (DefaultArc arc : outArcs) {
+	ArrayList<? extends AbstractArc> outArcs = impl.getOutArcs();
+	for (AbstractArc arc : outArcs) {
 	    out.printf("<arc destination='%d' fake='%b' onTree='%b' "
 		       + "fallThrough='%b' callNonReturn='%b' "
 		       + "nonLocalReturn='%b' unconditional='%b'",

@@ -1,6 +1,6 @@
 package com.maroontress.gcovparser;
 
-import java.util.LinkedList;
+import java.util.ArrayDeque;
 import java.util.Queue;
 
 /**
@@ -17,8 +17,8 @@ public final class Solver {
        インスタンスを生成します。
     */
     public Solver() {
-	validBlocks = new LinkedList<AbstractBlock>();
-	invalidBlocks = new LinkedList<AbstractBlock>();
+	validBlocks = new ArrayDeque<AbstractBlock>();
+	invalidBlocks = new ArrayDeque<AbstractBlock>();
     }
 
     /**
