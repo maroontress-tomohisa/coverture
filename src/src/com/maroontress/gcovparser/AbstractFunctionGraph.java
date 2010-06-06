@@ -87,8 +87,20 @@ public abstract class AbstractFunctionGraph<T extends AbstractBlock,
 
        @return ブロックのIterable
     */
-    protected final Iterable<T> getBlocks() {
+    public final Iterable<T> getBlocks() {
 	return blocks;
+    }
+
+    /**
+       アークのIterableを取得します。
+
+       @return アークのIterable
+    */
+    public final Iterable<U> getArcs() {
+	ArrayList<U> arcs = new ArrayList<U>();
+	arcs.addAll(solvedArcs);
+	arcs.addAll(unsolvedArcs);
+	return arcs;
     }
 
     /**
@@ -96,7 +108,7 @@ public abstract class AbstractFunctionGraph<T extends AbstractBlock,
 
        @return チェックサム
     */
-    protected final int getChecksum() {
+    public final int getChecksum() {
 	return checksum;
     }
 
@@ -105,7 +117,7 @@ public abstract class AbstractFunctionGraph<T extends AbstractBlock,
 
        @return ソースコードのファイル名
     */
-    protected final String getSourceFile() {
+    public final String getSourceFile() {
 	return sourceFile;
     }
 
@@ -114,7 +126,7 @@ public abstract class AbstractFunctionGraph<T extends AbstractBlock,
 
        @return 複雑度
     */
-    protected final int getComplexity() {
+    public final int getComplexity() {
 	return getComplexityWithFake() - fakeArcCount;
     }
 
