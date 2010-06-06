@@ -64,7 +64,7 @@ public abstract class AbstractNote<T extends AbstractFunctionGraph> {
 
        @return オリジン
     */
-    protected final Origin getOrigin() {
+    public final Origin getOrigin() {
 	return origin;
     }
 
@@ -109,7 +109,7 @@ public abstract class AbstractNote<T extends AbstractFunctionGraph> {
 
        @return 関数グラフのコレクション
     */
-    protected final Collection<T> getFunctionGraphCollection() {
+    public final Collection<T> getFunctionGraphCollection() {
 	return map.values();
     }
 
