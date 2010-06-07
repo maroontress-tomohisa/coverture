@@ -2,7 +2,6 @@ package com.maroontress.coverture;
 
 import com.maroontress.gcovparser.AbstractFunctionGraph;
 import com.maroontress.gcovparser.CorruptedFileException;
-import com.maroontress.gcovparser.DefaultArc;
 import com.maroontress.gcovparser.gcno.FunctionGraphRecord;
 import java.io.PrintWriter;
 import java.util.Comparator;
@@ -10,8 +9,7 @@ import java.util.Comparator;
 /**
    関数グラフです。
 */
-public final class FunctionGraph
-    extends AbstractFunctionGraph<Block, DefaultArc> {
+public final class FunctionGraph extends AbstractFunctionGraph<Block, Arc> {
 
     /** {@inheritDoc} */
     @Override protected Block createBlock(final int id, final int blockFlags) {
@@ -19,10 +17,9 @@ public final class FunctionGraph
     }
 
     /** {@inheritDoc} */
-    @Override protected DefaultArc createArc(final Block start,
-					     final Block end,
-					     final int flags) {
-	return start.createDefaultArc(end, flags);
+    @Override protected Arc createArc(final Block start, final Block end,
+				      final int flags) {
+	return new Arc(start, end, flags);
     }
 
     /**

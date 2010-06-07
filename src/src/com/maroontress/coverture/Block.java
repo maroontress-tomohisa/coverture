@@ -1,24 +1,17 @@
 package com.maroontress.coverture;
 
-import com.maroontress.gcovparser.AbstractArc;
 import com.maroontress.gcovparser.AbstractBlock;
-import com.maroontress.gcovparser.DefaultArc;
-import com.maroontress.gcovparser.DefaultBlock;
 import com.maroontress.gcovparser.LineEntry;
-import com.maroontress.gcovparser.Solver;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 
 /**
-   関数グラフのノードとなる基本ブロックの抽象クラスです。
+   関数グラフのノードとなる基本ブロックの実装クラスです。
 */
-public final class Block extends AbstractBlock {
+public final class Block extends AbstractBlock<Block, Arc> {
 
     /** パーセントに変換するための係数です。 */
     private static final double PERCENT = 100;
-
-    /** */
-    private DefaultBlock impl;
 
     /**
        ブロックを生成します。
@@ -27,18 +20,7 @@ public final class Block extends AbstractBlock {
        @param flags ブロックのフラグ
     */
     public Block(final int id, final int flags) {
-	impl = new DefaultBlock(id, flags);
-    }
-
-    /**
-       アークを生成します。
-
-       @param end このブロックから出たアークが向かうブロック
-       @param flags フラグ
-       @return アーク
-    */
-    public DefaultArc createDefaultArc(final Block end, final int flags) {
-	return new DefaultArc(impl, end.impl, flags);
+	super(id, flags);
     }
 
     /**
@@ -50,8 +32,8 @@ public final class Block extends AbstractBlock {
     */
     public void addLineCounts(final SourceList sourceList) {
 	assert (getCount() >= 0);
-	long count = impl.getCount();
-	LineEntry[] lines = impl.getLines();
+	long count = getCount();
+	LineEntry[] lines = getLines();
 	if (lines == null) {
 	    return;
 	}
@@ -77,7 +59,7 @@ public final class Block extends AbstractBlock {
        @return 実行割合
     */
     private double getRate(final long c) {
-	long count = impl.getCount();
+	long count = getCount();
 	return (count == 0) ? 0 : PERCENT * c / count;
     }
 
@@ -87,19 +69,19 @@ public final class Block extends AbstractBlock {
        @param out 出力先
     */
     public void printXML(final PrintWriter out) {
-	final boolean countValid = impl.getCountValid();
+	final boolean countValid = getCountValid();
 
 	out.printf("<block id='%d' flags='0x%x' callSite='%b' "
 		   + "callReturn='%b' nonLocalReturn='%b'",
-		   impl.getId(), impl.getFlags(), impl.isCallSite(),
-		   impl.isCallReturn(), impl.isNonLocalReturn());
+		   getId(), getFlags(), isCallSite(),
+		   isCallReturn(), isNonLocalReturn());
 	if (countValid) {
-	    out.printf(" count='%d'", impl.getCount());
+	    out.printf(" count='%d'", getCount());
 	}
 	out.printf(">\n");
 
-	ArrayList<? extends AbstractArc> outArcs = impl.getOutArcs();
-	for (AbstractArc arc : outArcs) {
+	ArrayList<Arc> outArcs = getOutArcs();
+	for (Arc arc : outArcs) {
 	    out.printf("<arc destination='%d' fake='%b' onTree='%b' "
 		       + "fallThrough='%b' callNonReturn='%b' "
 		       + "nonLocalReturn='%b' unconditional='%b'",
@@ -112,7 +94,7 @@ public final class Block extends AbstractBlock {
 	    }
 	    out.printf("/>\n");
 	}
-	LineEntry[] lines = impl.getLines();
+	LineEntry[] lines = getLines();
 	if (lines != null) {
 	    // 次のforの中はLineEntryに移せる...
 	    // e.printXML();
@@ -130,50 +112,5 @@ public final class Block extends AbstractBlock {
 	    }
 	}
 	out.printf("</block>\n");
-    }
-
-    /** {@inheritDoc} */
-    public long getCount() {
-	return impl.getCount();
-    }
-
-    /** {@inheritDoc} */
-    public void setLines(final LineEntry[] lines) {
-	impl.setLines(lines);
-    }
-
-    /** {@inheritDoc} */
-    public int getId() {
-	return impl.getId();
-    }
-
-    /** {@inheritDoc} */
-    public ArrayList<? extends AbstractArc> getInArcs() {
-	return impl.getInArcs();
-    }
-
-    /** {@inheritDoc} */
-    public ArrayList<? extends AbstractArc> getOutArcs() {
-	return impl.getOutArcs();
-    }
-
-    /** {@inheritDoc} */
-    public void presolve() {
-	impl.presolve();
-    }
-
-    /** {@inheritDoc} */
-    public void sortOutArcs() {
-	impl.sortOutArcs();
-    }
-
-    /** {@inheritDoc} */
-    public void validate(final Solver s) {
-	impl.validate(s);
-    }
-
-    /** {@inheritDoc} */
-    public void validateSides(final Solver s) {
-	impl.validateSides(s);
     }
 }
