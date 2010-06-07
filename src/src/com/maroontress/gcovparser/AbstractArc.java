@@ -72,11 +72,6 @@ public abstract class AbstractArc<T extends AbstractBlock<T, U>,
 	this.end = end;
 	this.flags = flags;
 	this.count = 0;
-	// start.addOutArc(), end.addInArc()はAbstractFunctionGraphに
-	// 移す?
-	U arc = cast();
-	start.addOutArc(arc);
-	end.addInArc(arc);
 	if (isFake()) {
 	    if (start.getId() != 0) {
 		/*
@@ -95,13 +90,6 @@ public abstract class AbstractArc<T extends AbstractBlock<T, U>,
 	    }
 	}
     }
-
-    /**
-       このインスタンスの具象クラスを取得します。
-
-       @return 具象クラス
-    */
-    protected abstract U cast();
 
     /**
        アークがスパニングツリーを構成するかどうか取得します。

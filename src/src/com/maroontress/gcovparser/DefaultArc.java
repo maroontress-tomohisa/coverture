@@ -17,9 +17,4 @@ public final class DefaultArc extends AbstractArc<DefaultBlock, DefaultArc> {
 		      final int flags) {
 	super(start, end, flags);
     }
-
-    /** {@inheritDoc} */
-    @Override protected DefaultArc cast() {
-	return this;
-    }
 }

@@ -18,9 +18,4 @@ public final class Arc extends AbstractArc<Block, Arc> {
     public Arc(final Block start, final Block end, final int flags) {
 	super(start, end, flags);
     }
-
-    /** {@inheritDoc} */
-    @Override protected Arc cast() {
-	return this;
-    }
 }

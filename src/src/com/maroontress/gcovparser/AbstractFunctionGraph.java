@@ -221,6 +221,8 @@ public abstract class AbstractFunctionGraph<T extends AbstractBlock<T, U>,
 	    T start = blocks.get(startIndex);
 	    T end = blocks.get(endIndex);
 	    U arc = createArc(start, end, flags);
+	    start.addOutArc(arc);
+	    end.addInArc(arc);
 	    if (!arc.isOnTree()) {
 		/*
 		  スパニングツリーではないアーク。gcdaファイルにはこの
