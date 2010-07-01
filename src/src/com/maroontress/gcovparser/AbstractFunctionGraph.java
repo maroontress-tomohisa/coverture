@@ -40,10 +40,18 @@ public abstract class AbstractFunctionGraph<T extends AbstractBlock<T, U>,
     private int totalArcCount;
 
     /**
-       偽のアークの個数です。偽のアークは、例外やlongjmp()によって、現
-       在の関数から抜ける経路に対応します。
+       複雑度を計算する場合に無視できる偽のアークの個数です。
+
+       複雑度を計算する場合に無視できるアークは、最終ブロックに向かう
+       偽のアークです。偽のアークは、例外やlongjmp()によって、現在の関
+       数から抜ける経路に対応します。そのため、複雑度を計算する場合は
+       偽のアークを除外して計算する必要があります。ところが、C++の
+       try-catchブロックで例外を捕捉する場合、最終ブロックではないブロッ
+       クに向かう偽のアークが存在します。したがって、ただ偽のアークを
+       除外するのではなく、最終的ブロックに向かう偽のアークだけを除外
+       する必要があります。
     */
-    private int fakeArcCount;
+    private int ignorableArcCount;
 
     /** 実行回数が判明しているアークのリストです。 */
     private ArrayList<U> solvedArcs;
@@ -127,7 +135,7 @@ public abstract class AbstractFunctionGraph<T extends AbstractBlock<T, U>,
        @return 複雑度
     */
     public final int getComplexity() {
-	return getComplexityWithFake() - fakeArcCount;
+	return getComplexityWithFake() - ignorableArcCount;
     }
 
     /**
@@ -206,21 +214,23 @@ public abstract class AbstractFunctionGraph<T extends AbstractBlock<T, U>,
     */
     private void addArcsRecord(final ArcsRecord arcsRecord)
 	throws CorruptedFileException {
-	int blockCount = blocks.size();
-	int startIndex = arcsRecord.getStartIndex();
-	ArcRecord[] list = arcsRecord.getList();
+	final int blockCount = blocks.size();
+	final int exitIndex = blockCount - 1;
+	final int startIndex = arcsRecord.getStartIndex();
+	final ArcRecord[] list = arcsRecord.getList();
 	if (startIndex >= blockCount) {
 	    throw new CorruptedFileException();
 	}
+	int fakeExitArcCount = 0;
 	for (ArcRecord arcRecord : list) {
-	    int endIndex = arcRecord.getEndIndex();
-	    int flags = arcRecord.getFlags();
+	    final int endIndex = arcRecord.getEndIndex();
+	    final int flags = arcRecord.getFlags();
 	    if (endIndex >= blockCount) {
 		throw new CorruptedFileException();
 	    }
-	    T start = blocks.get(startIndex);
-	    T end = blocks.get(endIndex);
-	    U arc = createArc(start, end, flags);
+	    final T start = blocks.get(startIndex);
+	    final T end = blocks.get(endIndex);
+	    final U arc = createArc(start, end, flags);
 	    start.addOutArc(arc);
 	    end.addInArc(arc);
 	    if (!arc.isOnTree()) {
@@ -239,11 +249,12 @@ public abstract class AbstractFunctionGraph<T extends AbstractBlock<T, U>,
 		*/
 		unsolvedArcs.add(arc);
 	    }
-	    if (arc.isFake()) {
-		++fakeArcCount;
+	    if (endIndex == exitIndex && arc.isFake()) {
+		++fakeExitArcCount;
 	    }
 	}
 	totalArcCount += list.length;
+	ignorableArcCount += fakeExitArcCount;
     }
 
     /**
@@ -295,25 +306,27 @@ public abstract class AbstractFunctionGraph<T extends AbstractBlock<T, U>,
     private void countCallSummary() {
 	calledCount = blocks.get(0).getCount();
 
-	int blockCount = blocks.size();
-	ArrayList<? extends AbstractArc> list
-	    = blocks.get(blockCount - 1).getInArcs();
-	long count = 0;
+	final int blockCount = blocks.size();
+	final int start = 1;
+	final int end = blockCount - 1;
+	final ArrayList<U> list = blocks.get(end).getInArcs();
+
+	long exitCount = 0;
 	for (AbstractArc arc : list) {
 	    if (arc.isFake()) {
 		continue;
 	    }
-	    count += arc.getCount();
+	    exitCount += arc.getCount();
 	}
-	returnedCount = count;
+	returnedCount = exitCount;
 
-	int start = 1;
-	int end = blockCount - 1;
+	int count = 0;
 	for (int k = start; k < end; ++k) {
 	    if (blocks.get(k).getCount() > 0) {
-		++executedBlockCount;
+		++count;
 	    }
 	}
+	executedBlockCount = count;
     }
 
     /**
@@ -413,5 +426,14 @@ public abstract class AbstractFunctionGraph<T extends AbstractBlock<T, U>,
     */
     public final int getBlockCount() {
 	return blocks.size() - 2;
+    }
+
+    /**
+       出口となるブロックを取得します。
+
+       @return ブロック数（入口、出口を除く）
+    */
+    public final T getExitBlock() {
+	return blocks.get(blocks.size() - 1);
     }
 }
