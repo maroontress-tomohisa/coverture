@@ -54,11 +54,11 @@ public final class DeliveryService<T> {
 	    while (taskCount > 0) {
 		Future<T> future = service.take();
 		T instance = future.get();
+		--taskCount;
 		if (instance == null) {
 		    continue;
 		}
 		listener.deliver(instance);
-		--taskCount;
 	    }
 	} catch (InterruptedException e) {
 	    throw new RuntimeException("internal error.", e);
